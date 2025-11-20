@@ -15,38 +15,48 @@
 
         <div class="header">
             <div style="display: flex; text-align: center; flex-direction: column;">
-                <img style="height: 5em;" src="./jesusBailando.gif" alt=""> <h1>Jeopardy - UTH Edition</h1> <img src="./jesusBailando.gif" style="height: 5em;" alt="">
+                <img style="height: 5em;" src="./jesusBailando.gif" alt="">
+                <h1>Jeopardy - UTH Edition</h1> <img src="./jesusBailando.gif" style="height: 5em;" alt="">
             </div>
-            <!-- <p>A ver quien sabe mas de coso cosito</p> -->
         </div>
 
         <div class="scoreboard" id="scoreboard"></div>
 
         <div class="controls-panel">
-            <button class="btn" onclick="addPlayer()">Agregar Wachin</button>
-            <button class="btn" onclick="openEditor()">Editar Preguntas</button>
-            <button class="btn danger" onclick="resetGame()">Reiniciar Juego</button>
+            <div class="dropdown" id="actionsDropdown">
+                <button class="dropdown-toggle" onclick="toggleDropdown()">Acciones</button>
+
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <button onclick="addPlayer()">Agregar Jugador</button>
+                    <button onclick="openEditor()">Editar Preguntas</button>
+                    <button onclick="resetScores()">Reiniciar Juego</button>
+                    <button onclick="resetQuestions()">Reiniciar Preguntas</button>
+                </div>
+            </div>
         </div>
 
         <div class="board" id="board"></div>
     </div>
 
-    <!-- Modal Pregunta -->
     <div class="modal" id="modal">
         <div class="modal-content">
+
             <h2 id="categoryTitle"></h2>
             <div class="value" id="pointValue"></div>
+
             <div class="question" id="questionText"></div>
             <div class="answer" id="answerText"></div>
 
-            <div class="buttons">
+            <div class="buttons-top">
                 <button class="btn" onclick="showAnswer()">Mostrar Respuesta</button>
                 <button class="btn danger" onclick="closeModal()">Cerrar</button>
             </div>
+
+            <div class="players-area" id="playersArea"></div>
+
         </div>
     </div>
 
-    <!-- Modal Editor -->
     <div class="editor-modal" id="editorModal">
         <div class="editor-content">
             <h2>Editor de Juego</h2>

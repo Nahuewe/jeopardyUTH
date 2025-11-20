@@ -1,38 +1,39 @@
-let gameData = {
-    categories: [],
-    questions: []
-};
-
+/* ================================
+   VARIABLES GLOBALES
+================================ */
+let gameData = { categories: [], questions: [] };
 let players = [];
-
 let usedCells = new Set();
 let editingGameData = null;
 
+/* ================================
+   LOCAL STORAGE
+================================ */
 function savePlayers() {
     localStorage.setItem("jeopardyPlayers", JSON.stringify(players));
 }
 
-function loadGameData() {
-    const saved = localStorage.getItem("jeopardyData");
-    if (saved) {
-        gameData = JSON.parse(saved);
-    } else {
-        gameData = {
-            categories: [],
-            questions: []
-        };
-    }
-}
-
 function loadPlayers() {
     const saved = localStorage.getItem("jeopardyPlayers");
-    if (saved) {
-        players = JSON.parse(saved);
-    } else {
-        players = [];
-    }
+    players = saved ? JSON.parse(saved) : [];
 }
 
+function loadGameData() {
+    const saved = localStorage.getItem("jeopardyData");
+    gameData = saved ? JSON.parse(saved) : { categories: [], questions: [] };
+}
+
+function saveGameDataUsed() {
+    localStorage.setItem("jeopardyData", JSON.stringify(gameData));
+}
+
+function persistGameData() {
+    localStorage.setItem("jeopardyData", JSON.stringify(editingGameData));
+}
+
+/* ================================
+   INICIALIZACIÓN
+================================ */
 function initGame() {
     loadGameData();
     loadPlayers();
@@ -40,46 +41,32 @@ function initGame() {
     renderScoreboard();
 }
 
-function persistGameData() {
-    localStorage.setItem("jeopardyData", JSON.stringify(editingGameData));
-}
+document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("mainActionsBtn");
+    const menu = document.getElementById("mainActionsMenu");
 
-function handleMediaUpload(event, catIndex, qIndex) {
-    const file = event.target.files[0];
-    if (!file) return;
+    btn.onclick = () => menu.classList.toggle("hidden");
 
-    const reader = new FileReader();
-    reader.onload = () => {
-        const url = reader.result;
+    document.addEventListener("click", (e) => {
+        if (!btn.contains(e.target) && !menu.contains(e.target)) {
+            menu.classList.add("hidden");
+        }
+    });
+});
 
-        const type = file.type.startsWith("video") ? "video" : "image";
+initGame();
 
-        editingGameData.questions[catIndex][qIndex].media = {
-            type,
-            url
-        };
-
-        renderEditor();
-    };
-
-    reader.readAsDataURL(file);
-}
-
-function removeMedia(catIndex, qIndex) {
-    editingGameData.questions[catIndex][qIndex].media = null;
-    renderEditor();
-}
-
+/* ================================
+   TABLERO PRINCIPAL
+================================ */
 function renderBoard() {
     const board = document.getElementById("board");
     board.innerHTML = "";
 
     if (!gameData.categories.length) {
-        document.getElementById("board").innerHTML =
-            "<p class='empty'>No hay categorías creadas aún.</p>";
+        board.innerHTML = "<p class='empty'>No hay categorías creadas aún.</p>";
         return;
     }
-
 
     gameData.categories.forEach((cat, colIndex) => {
         const column = document.createElement("div");
@@ -94,9 +81,7 @@ function renderBoard() {
             const cell = document.createElement("div");
             cell.className = "cell";
             cell.textContent = `$${q.value}`;
-
             cell.onclick = () => openQuestion(colIndex, rowIndex);
-
             if (q.used) cell.classList.add("used");
 
             column.appendChild(cell);
@@ -106,6 +91,9 @@ function renderBoard() {
     });
 }
 
+/* ================================
+   SCOREBOARD (Jugadores)
+================================ */
 function renderScoreboard() {
     const scoreboard = document.getElementById('scoreboard');
     scoreboard.innerHTML = '';
@@ -119,67 +107,78 @@ function renderScoreboard() {
         const playerCard = document.createElement('div');
         playerCard.className = 'player-card';
         playerCard.innerHTML = `
-                    <h3>${player.name}</h3>
-                    <div class="score">$${player.score}</div>
-                    <div class="controls">
-                        <button onclick="editPlayerName(${index})">Editar</button>
-                        <button onclick="removePlayer(${index})" style="background: #ff4444; color: white;">Eliminar</button>
-                    </div>
-                `;
+            <h3>${player.name}</h3>
+            <div class="score">$${player.score}</div>
+            <div class="controls">
+                <button onclick="editPlayerName(${index})">Editar</button>
+                <button onclick="removePlayer(${index})" style="background: #ff4444; color: white;">Eliminar</button>
+            </div>
+        `;
         scoreboard.appendChild(playerCard);
     });
 }
 
+/* ================================
+   MODAL DE PREGUNTAS
+================================ */
 function openQuestion(col, row) {
     const cellId = `${col}-${row}`;
     if (usedCells.has(cellId)) return;
+    if (gameData.questions[col][row].used) return;
 
     const question = gameData.questions[col][row];
-    if (question.used) return;
-    const modal = document.getElementById('modal');
 
     document.getElementById('categoryTitle').textContent = gameData.categories[col];
     document.getElementById('pointValue').textContent = `$${question.value}`;
+
     const qContent = document.getElementById('questionText');
-    qContent.innerHTML = question.question ? question.question : "(Sin texto)";
+    qContent.innerHTML = question.question || "(Sin texto)";
 
     if (question.media) {
-        if (question.media.type === "image") {
-            qContent.innerHTML += `<br><img src="${question.media.url}" style="max-width:300px;">`;
-        } else {
-            qContent.innerHTML += `<br><video src="${question.media.url}" controls style="max-width:320px;"></video>`;
-        }
+        qContent.innerHTML += question.media.type === "image"
+            ? `<br><img src="${question.media.url}" style="max-width:300px;">`
+            : `<br><video src="${question.media.url}" controls style="max-width:320px;"></video>`;
     }
 
     document.getElementById('answerText').textContent = `Respuesta: ${question.answer}`;
     document.getElementById('answerText').classList.remove('show');
+    document.getElementById('modal').classList.add('active');
 
-    modal.classList.add('active');
-
-    // Crear botones para dar puntos a jugadores
-    const buttonsDiv = document.querySelector('.modal-content .buttons');
-    buttonsDiv.innerHTML = `
-                <button class="btn-show" onclick="showAnswer()">Mostrar Respuesta</button>
-                ${players.map((player, index) =>
-        `<button style="background: #28a745; color: white;" onclick="awardPoints(${index}, ${question.value}, '${cellId}')">
-                        ✓ ${player.name}
-                    </button>`
-    ).join('')}
-                <button class="btn-close" onclick="closeModal()">Cerrar</button>
-            `;
+    const playersArea = document.getElementById("playersArea");
+    playersArea.innerHTML = players.map((player, index) => `
+        <div class="player-btn-group">
+            <button class="player-add" onclick="awardPoints(${index}, ${question.value}, '${cellId}')">
+                ${player.name} +${question.value}
+            </button>
+            <button class="player-deduct" onclick="deductPoints(${index}, ${question.value})">
+                ${player.name} -${question.value}
+            </button>
+        </div>
+    `).join("");
 }
 
 function showAnswer() {
     document.getElementById('answerText').classList.add('show');
 }
 
+function closeModal() {
+    document.getElementById('modal').classList.remove('active');
+}
+
+document.getElementById('modal').onclick = function (e) {
+    if (e.target === this) closeModal();
+};
+
+/* ================================
+   ASIGNACIÓN Y DEDUCCIÓN DE PUNTOS
+================================ */
 function awardPoints(playerIndex, points, cellId) {
     players[playerIndex].score += points;
-
     const [col, row] = cellId.split("-").map(Number);
-    gameData.questions[col][row].used = true;
 
+    gameData.questions[col][row].used = true;
     usedCells.add(cellId);
+
     renderScoreboard();
     savePlayers();
     saveGameDataUsed();
@@ -187,21 +186,62 @@ function awardPoints(playerIndex, points, cellId) {
     closeModal();
 }
 
-function saveGameDataUsed() {
-    localStorage.setItem("jeopardyData", JSON.stringify(gameData));
+function deductPoints(playerIndex, points) {
+    Swal.fire({
+        icon: 'question',
+        title: '¿Restar puntos?',
+        text: `¿Quitar $${points} a ${players[playerIndex].name}?`,
+        showCancelButton: true,
+        confirmButtonText: 'Restar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#c0392b'
+    }).then(result => {
+        if (result.isConfirmed) {
+            players[playerIndex].score -= points;
+            if (players[playerIndex].score < 0) players[playerIndex].score = 0;
+
+            savePlayers();
+            renderScoreboard();
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Puntos restados',
+                text: `${players[playerIndex].name} perdió $${points}.`,
+                confirmButtonColor: '#27ae60'
+            });
+        }
+    });
 }
 
-function closeModal() {
-    document.getElementById('modal').classList.remove('active');
-}
-
+/* ================================
+   GESTIÓN DE JUGADORES
+================================ */
 function addPlayer() {
-    const name = prompt('Nombre del jugador:', `Jugador ${players.length + 1}`);
-    if (name) {
-        players.push({ name: name, score: 0 });
-        savePlayers();
-        renderScoreboard();
-    }
+    Swal.fire({
+        title: "Nuevo pibardo",
+        input: "text",
+        inputLabel: "Nombre del jugador",
+        inputPlaceholder: `Jugador ${players.length + 1}`,
+        confirmButtonText: "Agregar",
+        showCancelButton: true,
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#27ae60",
+        inputValidator: (value) => !value.trim() && "Poné un nombre válido, wachín."
+    }).then(result => {
+        if (result.isConfirmed) {
+            const name = result.value.trim();
+            players.push({ name, score: 0 });
+            savePlayers();
+            renderScoreboard();
+
+            Swal.fire({
+                icon: "success",
+                title: "Jugador agregado",
+                text: `${name} ya está listo para perder.`,
+                confirmButtonColor: "#3498db"
+            });
+        }
+    });
 }
 
 function editPlayerName(index) {
@@ -238,42 +278,76 @@ function removePlayer(index) {
     });
 }
 
-function resetGame() {
+/* ================================
+   REINICIOS
+================================ */
+function resetScores() {
     Swal.fire({
         icon: 'warning',
-        title: '¿Reiniciar el juego?',
-        text: 'Esto borrará todos los puntajes y preguntas usadas.',
+        title: '¿Reiniciar puntos?',
+        text: 'Todos los jugadores volverán a 0.',
         showCancelButton: true,
         confirmButtonText: 'Reiniciar',
         cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#d35400'
+        confirmButtonColor: '#e67e22'
     }).then(result => {
         if (result.isConfirmed) {
-            players.forEach(player => player.score = 0);
-            usedCells.clear();
-            renderBoard();
+            players.forEach(p => p.score = 0);
+            savePlayers();
             renderScoreboard();
+            Swal.fire({
+                icon: 'success',
+                title: 'Listo',
+                text: 'Los puntos se reiniciaron.',
+                confirmButtonColor: '#27ae60'
+            });
         }
     });
 }
 
-// Open game editor modal
+function resetQuestions() {
+    Swal.fire({
+        icon: 'warning',
+        title: '¿Reiniciar preguntas?',
+        text: 'Esto hará que todas las preguntas vuelvan a estar disponibles.',
+        showCancelButton: true,
+        confirmButtonText: 'Reiniciar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#c0392b'
+    }).then(result => {
+        if (result.isConfirmed) {
+            gameData.questions.forEach(col =>
+                col.forEach(q => q.used = false)
+            );
+
+            usedCells.clear();
+            saveGameDataUsed();
+            renderBoard();
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Preguntas reiniciadas',
+                text: 'Todas las preguntas están disponibles nuevamente.',
+                confirmButtonColor: '#27ae60'
+            });
+        }
+    });
+}
+
+/* ================================
+   EDITOR DE CATEGORÍAS Y PREGUNTAS
+================================ */
 function openEditor() {
     editingGameData = JSON.parse(JSON.stringify(gameData));
     renderEditor();
-
-    const modal = document.getElementById('editorModal');
-    modal.classList.add('active');
+    document.getElementById('editorModal').classList.add('active');
 }
 
-// Close game editor modal
 function closeEditor() {
-    const modal = document.getElementById('editorModal');
-    modal.classList.remove('active');
+    document.getElementById('editorModal').classList.remove('active');
     editingGameData = null;
 }
 
-// Render game editor
 function renderEditor() {
     const container = document.getElementById('categoriesEditor');
     container.innerHTML = '';
@@ -282,82 +356,72 @@ function renderEditor() {
         const categoryDiv = document.createElement('div');
         categoryDiv.className = 'category-editor';
 
-        let questionsHTML = editingGameData.questions[catIndex].map((q, qIndex) => `
-    <div class="question-item">
-        <div class="question-header">
-            <h4>Pregunta ${qIndex + 1}</h4>
-            <button onclick="removeQuestion(${catIndex}, ${qIndex})">Eliminar</button>
-        </div>
-
-        <label>Puntos:</label>
-        <input type="number" value="${q.value}"
-               onchange="updateQuestion(${catIndex}, ${qIndex}, 'value', this.value)"
-               min="0" step="100">
-
-        <label>Pregunta:</label>
-        <textarea placeholder="Escribe la pregunta…"
-                  onchange="updateQuestion(${catIndex}, ${qIndex}, 'question', this.value)">${q.question || ''}</textarea>
-
-        <label>Respuesta:</label>
-        <textarea placeholder="Escribe la respuesta…"
-                  onchange="updateQuestion(${catIndex}, ${qIndex}, 'answer', this.value)">${q.answer || ''}</textarea>
-
-        <div class="media-section">
-            <label>Imagen / Video:</label>
-
-            <input type="file" accept="image/*,video/*"
-                   onchange="handleMediaUpload(event, ${catIndex}, ${qIndex})">
-
-            ${q.media ? `
-                <div class="media-preview">
-                    ${q.media.type === 'image'
-                    ? `<img src="${q.media.url}" style="max-width:120px;">`
-                    : `<video src="${q.media.url}" controls style="max-width:150px;"></video>`
-                }
-                    <button onclick="removeMedia(${catIndex}, ${qIndex})">Quitar</button>
+        const questionsHTML = editingGameData.questions[catIndex].map((q, qIndex) => `
+            <div class="question-item">
+                <div class="question-header">
+                    <h4>Pregunta ${qIndex + 1}</h4>
+                    <button onclick="removeQuestion(${catIndex}, ${qIndex})">Eliminar</button>
                 </div>
-            ` : ''}
-        </div>
-    </div>
-`).join('');
+
+                <label>Puntos:</label>
+                <input type="number" value="${q.value}"
+                    onchange="updateQuestion(${catIndex}, ${qIndex}, 'value', this.value)"
+                    min="0" step="100">
+
+                <label>Pregunta:</label>
+                <textarea onchange="updateQuestion(${catIndex}, ${qIndex}, 'question', this.value)">${q.question || ''}</textarea>
+
+                <label>Respuesta:</label>
+                <textarea onchange="updateQuestion(${catIndex}, ${qIndex}, 'answer', this.value)">${q.answer || ''}</textarea>
+
+                <div class="media-section">
+                    <label>Imagen / Video:</label>
+                    <input type="file" accept="image/*,video/*" onchange="handleMediaUpload(event, ${catIndex}, ${qIndex})">
+
+                    ${q.media ? `
+                        <div class="media-preview">
+                            ${q.media.type === 'image'
+                                ? `<img src="${q.media.url}" style="max-width:120px;">`
+                                : `<video src="${q.media.url}" controls style="max-width:150px;"></video>`
+                            }
+                            <button onclick="removeMedia(${catIndex}, ${qIndex})">Quitar</button>
+                        </div>` : ''
+                    }
+                </div>
+            </div>
+        `).join('');
 
         categoryDiv.innerHTML = `
-                    <div class="category-header">
-                        <input type="text" value="${category}" onchange="updateCategory(${catIndex}, this.value)" placeholder="Nombre de la categoría">
-                        <button onclick="removeCategory(${catIndex})">Eliminar</button>
-                    </div>
-                    ${questionsHTML}
-                    <button class="add-question-btn" onclick="addQuestion(${catIndex})">+ Agregar Pregunta</button>
-                `;
+            <div class="category-header">
+                <input type="text" value="${category}" onchange="updateCategory(${catIndex}, this.value)">
+                <button onclick="removeCategory(${catIndex})">Eliminar</button>
+            </div>
+            ${questionsHTML}
+            <button class="add-question-btn" onclick="addQuestion(${catIndex})">+ Agregar Pregunta</button>
+        `;
 
         container.appendChild(categoryDiv);
     });
 }
 
-// Update category name
+/* ================================
+   MODIFICACIONES EN EL EDITOR
+================================ */
 function updateCategory(catIndex, newName) {
     editingGameData.categories[catIndex] = newName;
 }
 
-// Update question details
 function updateQuestion(catIndex, qIndex, field, value) {
-    if (field === 'value') {
-        editingGameData.questions[catIndex][qIndex][field] = parseInt(value) || 0;
-    } else {
-        editingGameData.questions[catIndex][qIndex][field] = value;
-    }
+    editingGameData.questions[catIndex][qIndex][field] =
+        field === 'value' ? parseInt(value) || 0 : value;
 }
 
-// Add new category
 function addCategory() {
     editingGameData.categories.push('Nueva Categoría');
-    editingGameData.questions.push([
-        { value: 0, question: '', answer: '', media: null }
-    ]);
+    editingGameData.questions.push([{ value: 100, question: '', answer: '', media: null }]);
     renderEditor();
 }
 
-// Remove category
 function removeCategory(catIndex) {
     if (editingGameData.categories.length <= 1) {
         return Swal.fire({
@@ -378,35 +442,29 @@ function removeCategory(catIndex) {
         if (result.isConfirmed) {
             editingGameData.categories.splice(catIndex, 1);
             editingGameData.questions.splice(catIndex, 1);
-
             persistGameData();
-
             renderEditor();
         }
     });
 }
 
-// Add new question to a category
 function addQuestion(catIndex) {
-    const lastQuestion = editingGameData.questions[catIndex][editingGameData.questions[catIndex].length - 1];
-    const newValue = lastQuestion ? lastQuestion.value + 100 : 100;
-
+    const last = editingGameData.questions[catIndex].slice(-1)[0];
     editingGameData.questions[catIndex].push({
-        value: newValue,
-        question: 'Nueva pregunta',
-        answer: 'Nueva respuesta',
+        value: last ? last.value + 100 : 100,
+        question: '',
+        answer: '',
         media: null
     });
     renderEditor();
 }
 
-// Remove question from a category
 function removeQuestion(catIndex, qIndex) {
     if (editingGameData.questions[catIndex].length <= 1) {
         return Swal.fire({
             icon: 'info',
             title: 'No permitido',
-            text: 'Debe haber al menos una pregunta por categoría.'
+            text: 'Debe haber al menos una pregunta.'
         });
     }
 
@@ -425,60 +483,45 @@ function removeQuestion(catIndex, qIndex) {
     });
 }
 
+/* ================================
+   GUARDAR JUEGO COMPLETO
+================================ */
 function saveGame() {
-    // Validación: no dejar categorías vacías
-    if (!editingGameData || !Array.isArray(editingGameData.categories)) {
+    if (!editingGameData || !editingGameData.categories.length) {
         alert('No hay datos para guardar.');
         return;
     }
-    if (editingGameData.categories.some(cat => !cat || !cat.toString().trim())) {
+
+    if (editingGameData.categories.some(cat => !cat.trim())) {
         alert('Todas las categorías deben tener un nombre');
         return;
     }
 
-    // Normalizar estructura: asegurar que questions exista y coincida en longitud con categories
-    if (!Array.isArray(editingGameData.questions)) editingGameData.questions = [];
-    const catCount = editingGameData.categories.length;
-    for (let i = 0; i < catCount; i++) {
-        if (!Array.isArray(editingGameData.questions[i])) {
-            // crear una pregunta por defecto si falta la columna
-            editingGameData.questions[i] = [
-                { value: 100, question: 'Nueva pregunta', answer: 'Nueva respuesta' }
-            ];
-        }
+    editingGameData.questions = editingGameData.questions.map(col =>
+        col.map(q => ({
+            value: Number(q.value) || 100,
+            question: q.question || "",
+            answer: q.answer || "",
+            media: q.media ? { ...q.media } : null
+        }))
+    );
 
-        // Asegurar que cada pregunta tenga campos válidos
-        editingGameData.questions[i] = editingGameData.questions[i].map(q => {
-            const out = {};
-            out.value = Number.isFinite(Number(q && q.value)) ? Number(q.value) : 100;
-            out.question = (q && q.question) ? String(q.question) : '';
-            out.answer = (q && q.answer) ? String(q.answer) : '';
-
-            // *** FIX: mantener imagen / video ***
-            out.media = q.media ? { ...q.media } : null;
-
-            return out;
-        });
-    }
-
-    // Asignar, persistir y re-renderizar
     gameData = JSON.parse(JSON.stringify(editingGameData));
+
     try {
-        const key = (typeof STORAGE_KEY !== 'undefined') ? STORAGE_KEY : 'jeopardyData';
-        localStorage.setItem(key, JSON.stringify(gameData));
+        localStorage.setItem("jeopardyData", JSON.stringify(gameData));
     } catch (err) {
         console.error('Error guardando en localStorage:', err);
-        alert('No se pudo guardar localmente (localStorage). Revisa permisos o espacio.');
+        alert('No se pudo guardar localmente.');
     }
 
     usedCells.clear();
-    if (typeof renderBoard === 'function') renderBoard();
-    if (typeof renderScoreboard === 'function') renderScoreboard();
+    renderBoard();
+    renderScoreboard();
 
-    const editorModal = document.getElementById('editorModal');
-    if (editorModal) editorModal.classList.remove('active');
-
+    document.getElementById('editorModal').classList.remove('active');
     editingGameData = null;
+
     Swal.fire({
         icon: 'success',
         title: 'Juego guardado',
@@ -487,12 +530,42 @@ function saveGame() {
     });
 }
 
-// Cerrar modal al hacer clic fuera
-document.getElementById('modal').onclick = function (e) {
-    if (e.target === this) {
-        closeModal();
-    }
-};
+/* ================================
+   MULTIMEDIA EN EL EDITOR
+================================ */
+function handleMediaUpload(event, catIndex, qIndex) {
+    const file = event.target.files[0];
+    if (!file) return;
 
-// Inicializar el juego
-initGame();
+    const reader = new FileReader();
+    reader.onload = () => {
+        editingGameData.questions[catIndex][qIndex].media = {
+            type: file.type.startsWith("video") ? "video" : "image",
+            url: reader.result
+        };
+        renderEditor();
+    };
+
+    reader.readAsDataURL(file);
+}
+
+function removeMedia(catIndex, qIndex) {
+    editingGameData.questions[catIndex][qIndex].media = null;
+    renderEditor();
+}
+
+/* ================================
+   DROPDOWN PRINCIPAL
+================================ */
+function toggleDropdown() {
+    document.getElementById("dropdownMenu").classList.toggle("open");
+}
+
+document.addEventListener("click", function (e) {
+    const dropdown = document.getElementById("actionsDropdown");
+    const menu = document.getElementById("dropdownMenu");
+
+    if (!dropdown.contains(e.target)) {
+        menu.classList.remove("open");
+    }
+});

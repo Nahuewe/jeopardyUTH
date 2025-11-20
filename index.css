@@ -151,8 +151,9 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.9);
-    z-index: 1000;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
     align-items: center;
     justify-content: center;
 }
@@ -163,13 +164,76 @@ body {
 
 .modal-content {
     background: linear-gradient(135deg, #1e3a5f 0%, #0f2847 100%);
-    padding: 40px;
-    border-radius: 16px;
-    max-width: 700px;
     width: 90%;
+    max-width: 900px;
+    padding: 45px;
+    border-radius: 20px;
     border: 4px solid #ffd700;
-    box-shadow: 0 16px 64px rgba(255, 215, 0, 0.3);
-    animation: slideIn 0.3s ease;
+    box-shadow: 0 20px 80px rgba(255, 215, 0, 0.35);
+    animation: modalIn 0.35s ease;
+
+    /* Nuevo: mejor distribución interna */
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+
+    /* Mejor control del contenido */
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-content h2 {
+    color: #ffd700;
+    font-size: 2.2rem;
+    text-align: center;
+}
+
+.modal-content .value {
+    color: #ffd700;
+    font-size: 3.2rem;
+    text-align: center;
+    font-weight: 900;
+}
+
+.modal-content .question {
+    background: #0a1628;
+    padding: 30px;
+    border-radius: 12px;
+    font-size: 1.5rem;
+    line-height: 1.7;
+    color: white;
+    text-align: center;
+    border: 2px solid #1a3a5f;
+    box-shadow: inset 0 0 25px rgba(0,0,0,0.5);
+}
+
+.modal-content .answer {
+    background: #182f4d;
+    padding: 25px;
+    border-radius: 12px;
+    font-size: 1.3rem;
+    color: #a8c5e8;
+    border: 2px dashed #ffd700;
+    display: none;
+    text-align: center;
+}
+
+.modal-content .answer.show {
+    display: block;
+}
+
+.modal-content .buttons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 10px;
+}
+
+.modal-content .buttons button {
+    padding: 14px 30px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    border-radius: 10px;
 }
 
 @keyframes slideIn {
@@ -184,39 +248,115 @@ body {
     }
 }
 
-.modal-content h2 {
-    color: #ffd700;
-    font-size: 1.5rem;
-    margin-bottom: 10px;
-    text-align: center;
+.buttons-top {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 10px;
+    margin-bottom: 20px;
 }
 
-.modal-content .value {
-    color: #ffd700;
-    font-size: 3rem;
-    text-align: center;
-    margin-bottom: 20px;
+.players-area {
+    padding-top: 15px;
+    border-top: 2px solid #333;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.player-btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.player-btn-group button {
+    padding: 8px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    color: white;
+}
+
+.player-add {
+    background: #2ecc71;
+}
+
+.player-deduct {
+    background: #e74c3c;
+}
+
+/* Dropdown con click */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-toggle {
+    background: #ffd700;
+    color: #0a1628;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 10px;
     font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s ease;
+    font-size: 1rem;
 }
 
-.modal-content .question {
-    background: #0a1628;
-    padding: 30px;
+.dropdown-toggle:hover {
+    background: #ffeb57;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 110%;
+    right: 0;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    background: #1e3a5f;
+    padding: 15px;
+    border-radius: 12px;
+    border: 2px solid #ffd700;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-5px);
+    transition: all 0.25s ease;
+    z-index: 999;
+}
+
+.dropdown-menu.open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.dropdown-menu button {
+    background: #ffd700;
+    color: #0a1628;
+    border: none;
+    padding: 10px 18px;
     border-radius: 8px;
-    margin-bottom: 20px;
-    font-size: 1.3rem;
-    line-height: 1.6;
-    color: #fff;
-    text-align: center;
-    border: 2px solid #1a3a5f;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: 0.3s ease;
+    white-space: nowrap;
+}
+
+.dropdown-menu button:hover {
+    background: #ffed4e;
+    transform: translateY(-2px);
 }
 
 .modal-content .answer {
     background: #1a3a5f;
-    padding: 20px;
+    padding: 30px;
     border-radius: 8px;
     margin-bottom: 20px;
-    font-size: 1.1rem;
+    font-size: 1.3rem;
     color: #a8c5e8;
     border: 2px dashed #ffd700;
     display: none;
