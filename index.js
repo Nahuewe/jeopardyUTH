@@ -16,6 +16,10 @@ function savePlayers() {
 function loadPlayers() {
     const saved = localStorage.getItem("jeopardyPlayers");
     players = saved ? JSON.parse(saved) : [];
+
+    players.forEach(p => {
+        if (!p.color) p.color = generateColor();
+    });
 }
 
 function loadGameData() {
@@ -106,14 +110,18 @@ function renderScoreboard() {
     players.forEach((player, index) => {
         const playerCard = document.createElement('div');
         playerCard.className = 'player-card';
+
+        playerCard.style.borderLeft = `6px solid ${player.color}`;
+        playerCard.style.background = `${player.color}15`; // suave
+
         playerCard.innerHTML = `
-            <h3>${player.name}</h3>
-            <div class="score">$${player.score}</div>
-            <div class="controls">
-                <button onclick="editPlayerName(${index})">Editar</button>
-                <button onclick="removePlayer(${index})" style="background: #ff4444; color: white;">Eliminar</button>
-            </div>
-        `;
+        <h3>${player.name}</h3>
+        <div class="score">$${player.score}</div>
+        <div class="controls">
+            <button onclick="editPlayerName(${index})">Editar</button>
+            <button onclick="removePlayer(${index})" style="background: #ff4444; color: white;">Eliminar</button>
+        </div>
+    `;
         scoreboard.appendChild(playerCard);
     });
 }
@@ -146,15 +154,24 @@ function openQuestion(col, row) {
 
     const playersArea = document.getElementById("playersArea");
     playersArea.innerHTML = players.map((player, index) => `
-        <div class="player-btn-group">
-            <button class="player-add" onclick="awardPoints(${index}, ${question.value}, '${cellId}')">
-                ${player.name} +${question.value}
-            </button>
-            <button class="player-deduct" onclick="deductPoints(${index}, ${question.value})">
-                ${player.name} -${question.value}
-            </button>
-        </div>
-    `).join("");
+    <div class="player-btn-group">
+        <button
+            class="player-add"
+            style="background:${player.color}; color:white;"
+            onclick="awardPoints(${index}, ${question.value}, '${cellId}')"
+        >
+            ${player.name} +${question.value}
+        </button>
+
+        <button
+            class="player-deduct"
+            style="border:2px solid ${player.color}; color:${player.color}; background:white;"
+            onclick="deductPoints(${index}, ${question.value})"
+        >
+            ${player.name} -${question.value}
+        </button>
+    </div>
+`).join("");
 }
 
 function showAnswer() {
@@ -216,28 +233,50 @@ function deductPoints(playerIndex, points) {
 /* ================================
    GESTIÓN DE JUGADORES
 ================================ */
+function generateColor() {
+    const colors = ["#ff7675", "#74b9ff", "#55efc4", "#ffeaa7", "#a29bfe", "#fab1a0", "#81ecec", "#fd79a8"];
+    return colors[Math.floor(Math.random() * colors.length)];
+}
+
 function addPlayer() {
     Swal.fire({
-        title: "Nuevo pibardo",
-        input: "text",
-        inputLabel: "Nombre del jugador",
-        inputPlaceholder: `Jugador ${players.length + 1}`,
-        confirmButtonText: "Agregar",
+        title: "Nuevo jugador",
+        html: `
+            <input id="playerName" class="swal2-input" placeholder="Nombre del jugador">
+            <input id="playerColor" type="color" value="#3498db"
+                style="width: 100%; height: 50px; border-radius: 8px; cursor: pointer; margin-top:5px;">
+        `,
+        focusConfirm: false,
         showCancelButton: true,
+        confirmButtonText: "Agregar",
         cancelButtonText: "Cancelar",
         confirmButtonColor: "#27ae60",
-        inputValidator: (value) => !value.trim() && "Poné un nombre válido, wachín."
+        preConfirm: () => {
+            const name = document.getElementById("playerName").value.trim();
+            const color = document.getElementById("playerColor").value;
+
+            if (!name) {
+                Swal.showValidationMessage("Poné un nombre válido, wachín.");
+                return false;
+            }
+
+            return { name, color };
+        }
     }).then(result => {
         if (result.isConfirmed) {
-            const name = result.value.trim();
-            players.push({ name, score: 0 });
+            players.push({
+                name: result.value.name,
+                score: 0,
+                color: result.value.color
+            });
+
             savePlayers();
             renderScoreboard();
 
             Swal.fire({
                 icon: "success",
                 title: "Jugador agregado",
-                text: `${name} ya está listo para perder.`,
+                text: `${result.value.name} ya está listo.`,
                 confirmButtonColor: "#3498db"
             });
         }
@@ -245,12 +284,48 @@ function addPlayer() {
 }
 
 function editPlayerName(index) {
-    const newName = prompt('Nuevo nombre:', players[index].name);
-    if (newName) {
-        players[index].name = newName;
-        savePlayers();
-        renderScoreboard();
-    }
+    Swal.fire({
+        title: "Editar jugador",
+        html: `
+            <input id="editName" class="swal2-input" placeholder="Nombre"
+                   value="${players[index].name}">
+
+            <label style="margin-top:10px; font-weight:bold;">Color:</label>
+            <input id="editColor" type="color" value="${players[index].color}"
+                style="width: 100%; height: 50px; border-radius: 8px; cursor: pointer; margin-top:5px;">
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: "Guardar",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#27ae60",
+        preConfirm: () => {
+            const name = document.getElementById("editName").value.trim();
+            const color = document.getElementById("editColor").value;
+
+            if (!name) {
+                Swal.showValidationMessage("El nombre no puede estar vacío.");
+                return false;
+            }
+
+            return { name, color };
+        }
+    }).then(result => {
+        if (result.isConfirmed) {
+            players[index].name = result.value.name;
+            players[index].color = result.value.color;
+
+            savePlayers();
+            renderScoreboard();
+
+            Swal.fire({
+                icon: "success",
+                title: "Jugador editado",
+                text: "Los cambios fueron aplicados correctamente.",
+                confirmButtonColor: "#3498db"
+            });
+        }
+    });
 }
 
 function removePlayer(index) {
@@ -381,12 +456,12 @@ function renderEditor() {
                     ${q.media ? `
                         <div class="media-preview">
                             ${q.media.type === 'image'
-                                ? `<img src="${q.media.url}" style="max-width:120px;">`
-                                : `<video src="${q.media.url}" controls style="max-width:150px;"></video>`
-                            }
+                    ? `<img src="${q.media.url}" style="max-width:120px;">`
+                    : `<video src="${q.media.url}" controls style="max-width:150px;"></video>`
+                }
                             <button onclick="removeMedia(${catIndex}, ${qIndex})">Quitar</button>
                         </div>` : ''
-                    }
+            }
                 </div>
             </div>
         `).join('');
