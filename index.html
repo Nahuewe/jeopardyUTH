@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="index.css">
+    <link rel="icon" type="image/svg+xml" href="./porton.jpg" />
+    <link rel="icon" href="./porton.jpg" />
+    <title>Jeopardy - UTH</title>
+</head>
+
+<body>
+    <div class="container">
+
+        <div class="header">
+            <h1>Jeopardy - UTH Edition</h1>
+            <p>A ver quien sabe mas de coso cosito</p>
+        </div>
+
+        <div class="scoreboard" id="scoreboard"></div>
+
+        <div class="controls-panel">
+            <button class="btn" onclick="addPlayer()">Agregar Wachin</button>
+            <button class="btn" onclick="openEditor()">Editar Preguntas</button>
+            <button class="btn danger" onclick="resetGame()">Reiniciar Juego</button>
+        </div>
+
+        <div class="board" id="board"></div>
+    </div>
+
+    <!-- Modal Pregunta -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h2 id="categoryTitle"></h2>
+            <div class="value" id="pointValue"></div>
+            <div class="question" id="questionText"></div>
+            <div class="answer" id="answerText"></div>
+
+            <div class="buttons">
+                <button class="btn" onclick="showAnswer()">Mostrar Respuesta</button>
+                <button class="btn danger" onclick="closeModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editor -->
+    <div class="editor-modal" id="editorModal">
+        <div class="editor-content">
+            <h2>Editor de Juego</h2>
+
+            <div id="categoriesEditor"></div>
+
+            <button class="add-category-btn" onclick="addCategory()">Agregar Categoría</button>
+
+            <div class="editor-actions">
+                <button class="btn" onclick="saveGame()">Guardar Cambios</button>
+                <button class="btn danger" onclick="closeEditor()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="index.js"></script>
+</body>
+
+</html>
