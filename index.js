@@ -44,6 +44,32 @@ function persistGameData() {
     localStorage.setItem("jeopardyData", JSON.stringify(editingGameData));
 }
 
+function handleMediaUpload(event, catIndex, qIndex) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        const url = reader.result;
+
+        const type = file.type.startsWith("video") ? "video" : "image";
+
+        editingGameData.questions[catIndex][qIndex].media = {
+            type,
+            url
+        };
+
+        renderEditor();
+    };
+
+    reader.readAsDataURL(file);
+}
+
+function removeMedia(catIndex, qIndex) {
+    editingGameData.questions[catIndex][qIndex].media = null;
+    renderEditor();
+}
+
 function renderBoard() {
     const board = document.getElementById("board");
     board.innerHTML = "";
@@ -109,11 +135,22 @@ function openQuestion(col, row) {
     if (usedCells.has(cellId)) return;
 
     const question = gameData.questions[col][row];
+    if (question.used) return;
     const modal = document.getElementById('modal');
 
     document.getElementById('categoryTitle').textContent = gameData.categories[col];
     document.getElementById('pointValue').textContent = `$${question.value}`;
-    document.getElementById('questionText').textContent = question.question;
+    const qContent = document.getElementById('questionText');
+    qContent.innerHTML = question.question ? question.question : "(Sin texto)";
+
+    if (question.media) {
+        if (question.media.type === "image") {
+            qContent.innerHTML += `<br><img src="${question.media.url}" style="max-width:300px;">`;
+        } else {
+            qContent.innerHTML += `<br><video src="${question.media.url}" controls style="max-width:320px;"></video>`;
+        }
+    }
+
     document.getElementById('answerText').textContent = `Respuesta: ${question.answer}`;
     document.getElementById('answerText').classList.remove('show');
 
@@ -138,11 +175,20 @@ function showAnswer() {
 
 function awardPoints(playerIndex, points, cellId) {
     players[playerIndex].score += points;
+
+    const [col, row] = cellId.split("-").map(Number);
+    gameData.questions[col][row].used = true;
+
     usedCells.add(cellId);
     renderScoreboard();
     savePlayers();
+    saveGameDataUsed();
     renderBoard();
     closeModal();
+}
+
+function saveGameDataUsed() {
+    localStorage.setItem("jeopardyData", JSON.stringify(gameData));
 }
 
 function closeModal() {
@@ -237,19 +283,43 @@ function renderEditor() {
         categoryDiv.className = 'category-editor';
 
         let questionsHTML = editingGameData.questions[catIndex].map((q, qIndex) => `
-                    <div class="question-item">
-                        <div class="question-header">
-                            <h4>Pregunta ${qIndex + 1}</h4>
-                            <button onclick="removeQuestion(${catIndex}, ${qIndex})">Eliminar</button>
-                        </div>
-                        <label>Puntos:</label>
-                        <input type="number" value="${q.value}" onchange="updateQuestion(${catIndex}, ${qIndex}, 'value', this.value)" min="0" step="100">
-                        <label>Pregunta:</label>
-                        <textarea onchange="updateQuestion(${catIndex}, ${qIndex}, 'question', this.value)">${q.question}</textarea>
-                        <label>Respuesta:</label>
-                        <textarea onchange="updateQuestion(${catIndex}, ${qIndex}, 'answer', this.value)">${q.answer}</textarea>
-                    </div>
-                `).join('');
+    <div class="question-item">
+        <div class="question-header">
+            <h4>Pregunta ${qIndex + 1}</h4>
+            <button onclick="removeQuestion(${catIndex}, ${qIndex})">Eliminar</button>
+        </div>
+
+        <label>Puntos:</label>
+        <input type="number" value="${q.value}"
+               onchange="updateQuestion(${catIndex}, ${qIndex}, 'value', this.value)"
+               min="0" step="100">
+
+        <label>Pregunta:</label>
+        <textarea placeholder="Escribe la pregunta…"
+                  onchange="updateQuestion(${catIndex}, ${qIndex}, 'question', this.value)">${q.question || ''}</textarea>
+
+        <label>Respuesta:</label>
+        <textarea placeholder="Escribe la respuesta…"
+                  onchange="updateQuestion(${catIndex}, ${qIndex}, 'answer', this.value)">${q.answer || ''}</textarea>
+
+        <div class="media-section">
+            <label>Imagen / Video:</label>
+
+            <input type="file" accept="image/*,video/*"
+                   onchange="handleMediaUpload(event, ${catIndex}, ${qIndex})">
+
+            ${q.media ? `
+                <div class="media-preview">
+                    ${q.media.type === 'image'
+                    ? `<img src="${q.media.url}" style="max-width:120px;">`
+                    : `<video src="${q.media.url}" controls style="max-width:150px;"></video>`
+                }
+                    <button onclick="removeMedia(${catIndex}, ${qIndex})">Quitar</button>
+                </div>
+            ` : ''}
+        </div>
+    </div>
+`).join('');
 
         categoryDiv.innerHTML = `
                     <div class="category-header">
@@ -282,7 +352,7 @@ function updateQuestion(catIndex, qIndex, field, value) {
 function addCategory() {
     editingGameData.categories.push('Nueva Categoría');
     editingGameData.questions.push([
-        { value: 100, question: 'Nueva pregunta', answer: 'Nueva respuesta' }
+        { value: 0, question: '', answer: '', media: null }
     ]);
     renderEditor();
 }
@@ -309,7 +379,7 @@ function removeCategory(catIndex) {
             editingGameData.categories.splice(catIndex, 1);
             editingGameData.questions.splice(catIndex, 1);
 
-            persistGameData();   // 🔥 ESTE ERA EL FALTANTE
+            persistGameData();
 
             renderEditor();
         }
@@ -324,7 +394,8 @@ function addQuestion(catIndex) {
     editingGameData.questions[catIndex].push({
         value: newValue,
         question: 'Nueva pregunta',
-        answer: 'Nueva respuesta'
+        answer: 'Nueva respuesta',
+        media: null
     });
     renderEditor();
 }
@@ -380,8 +451,12 @@ function saveGame() {
         editingGameData.questions[i] = editingGameData.questions[i].map(q => {
             const out = {};
             out.value = Number.isFinite(Number(q && q.value)) ? Number(q.value) : 100;
-            out.question = (q && q.question) ? String(q.question) : 'Nueva pregunta';
-            out.answer = (q && q.answer) ? String(q.answer) : 'Nueva respuesta';
+            out.question = (q && q.question) ? String(q.question) : '';
+            out.answer = (q && q.answer) ? String(q.answer) : '';
+
+            // *** FIX: mantener imagen / video ***
+            out.media = q.media ? { ...q.media } : null;
+
             return out;
         });
     }
