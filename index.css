@@ -12,6 +12,20 @@ body {
     overflow-x: hidden;
 }
 
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #1cd7d1;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
 .container {
     max-width: 1400px;
     margin: 0 auto;
@@ -164,22 +178,20 @@ body {
 
 .modal-content {
     background: linear-gradient(135deg, #1e3a5f 0%, #0f2847 100%);
-    width: 90%;
-    max-width: 900px;
-    padding: 45px;
-    border-radius: 20px;
+    width: 95%;
+    max-width: 1300px; /* Aumentado */
+    padding: 55px; /* Más espacio interior */
+    border-radius: 22px;
     border: 4px solid #ffd700;
-    box-shadow: 0 20px 80px rgba(255, 215, 0, 0.35);
+    box-shadow: 0 25px 90px rgba(255, 215, 0, 0.45);
     animation: modalIn 0.35s ease;
 
-    /* Nuevo: mejor distribución interna */
     display: flex;
     flex-direction: column;
-    gap: 25px;
+    gap: 30px;
 
-    /* Mejor control del contenido */
-    max-height: 90vh;
-    overflow-y: auto;
+    max-height: 96vh; /* Más grande */
+    overflow-y: auto; /* Scroll si hace falta */
 }
 
 .modal-content h2 {

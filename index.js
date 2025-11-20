@@ -155,6 +155,8 @@ function openQuestion(col, row) {
     const playersArea = document.getElementById("playersArea");
     playersArea.innerHTML = players.map((player, index) => `
     <div class="player-btn-group">
+
+        <!-- SUMAR (usa el color del jugador) -->
         <button
             class="player-add"
             style="background:${player.color}; color:white;"
@@ -163,13 +165,15 @@ function openQuestion(col, row) {
             ${player.name} +${question.value}
         </button>
 
+        <!-- RESTAR (SIEMPRE ROJO) -->
         <button
             class="player-deduct"
-            style="border:2px solid ${player.color}; color:${player.color}; background:white;"
+            style="background:#f55c5c; color: white;"
             onclick="deductPoints(${index}, ${question.value})"
         >
             ${player.name} -${question.value}
         </button>
+
     </div>
 `).join("");
 }
