@@ -12,6 +12,10 @@
 
 <body>
     <div class="container">
+        <div class="mode-controls-panel">
+            <button id="modeGameBtn" class="mode-btn active" onclick="setMode('game')">Modo Juego</button>
+            <button id="modeEditBtn" class="mode-btn" onclick="setMode('edit')">Modo Edición</button>
+        </div>
 
         <div class="header">
             <div style="display: flex; text-align: center; flex-direction: column;">
@@ -20,30 +24,38 @@
             </div>
         </div>
 
-        <div class="scoreboard" id="scoreboard"></div>
-
         <div class="controls-panel">
             <div class="dropdown" id="actionsDropdown">
-                <button class="dropdown-toggle" onclick="toggleDropdown()">Acciones</button>
-
-                <div class="dropdown-menu" id="dropdownMenu">
-                    <button onclick="addPlayer()">Agregar Jugador</button>
-                    <button onclick="openEditor()">Editar Preguntas</button>
-                    <button onclick="resetScores()">Reiniciar Juego</button>
-                    <button onclick="resetQuestions()">Reiniciar Preguntas</button>
+                <button class="dropdown-toggle" id="mainActionsBtn" onclick="toggleDropdown()">Acciones</button>
+                <div class="dropdown-menu" id="mainActionsMenu">
+                    <button onclick="addPlayer()">➕ Agregar Jugador</button>
+                    <button onclick="openTeamCreator()">👥 Crear Equipo (Grupal)</button>
+                    <button onclick="openEditor()">✏️ Editar Preguntas</button>
+                    <button onclick="resetScores()">🔄 Reiniciar Puntos</button>
+                    <button onclick="resetQuestions()">❌ Reiniciar Preguntas Usadas</button>
                 </div>
             </div>
         </div>
 
-        <div class="board" id="board"></div>
+        <div id="gameModeContainer" class="mode-content">
+            <div class="scoreboard" id="scoreboard"></div>
+            <div class="board" id="board"></div>
+        </div>
+
+        <div id="editModeContainer" class="mode-content" style="display:none;">
+            <h2 style="text-align: center;">Opciones de Ronda</h2>
+            <p class="edit-info">Selecciona la ronda para ver/editar su tablero de preguntas. Usa el botón "Editar
+                Preguntas" del menú Acciones para modificar el contenido.</p>
+
+            <div class="tabs-container" id="tabsContainer">
+            </div>
+        </div>
     </div>
 
     <div class="modal" id="modal">
         <div class="modal-content">
-
             <h2 id="categoryTitle"></h2>
             <div class="value" id="pointValue"></div>
-
             <div class="question" id="questionText"></div>
             <div class="answer" id="answerText"></div>
 
@@ -53,21 +65,19 @@
             </div>
 
             <div class="players-area" id="playersArea"></div>
-
         </div>
     </div>
 
     <div class="editor-modal" id="editorModal">
         <div class="editor-content">
-            <h2>Editor de Juego</h2>
-
+            <h2 id="editorTitle">Editor de Juego</h2>
             <div id="categoriesEditor"></div>
 
-            <button class="add-category-btn" onclick="addCategory()">Agregar Categoría</button>
+            <button class="add-category-btn" onclick="addCategory()">+ Agregar Categoría</button>
 
             <div class="editor-actions">
-                <button class="btn" onclick="saveGame()">Guardar Cambios</button>
-                <button class="btn danger" onclick="closeEditor()">Cancelar</button>
+                <button class="btn btn-save" onclick="saveGame()">Guardar Cambios</button>
+                <button class="btn danger btn-cancel" onclick="closeEditor()">Cancelar</button>
             </div>
         </div>
     </div>
