@@ -30,7 +30,7 @@ export class GameState {
                 categories: [],
                 questions: [],
                 name: this.roundsData[roundKey]?.name ||
-                      (roundKey === 'individual' ? "Ronda Individual" : "Ronda Grupal"),
+                    (roundKey === 'individual' ? "Ronda Individual" : "Ronda Grupal"),
                 finalQuestion: null
             };
         }
@@ -59,5 +59,21 @@ export class GameState {
 
     isTeamMode() {
         return this.activeRound === 'grupal';
+    }
+
+    toggleMusic() {
+        const audio = document.getElementById("gameMusic");
+        const btn = document.getElementById("musicBtn");
+
+        if (!audio) return;
+
+        if (audio.paused) {
+            audio.volume = 0.35;
+            audio.play();
+            btn.textContent = "⏸️ Pausar Música";
+        } else {
+            audio.pause();
+            btn.textContent = "🎵 Reproducir Música";
+        }
     }
 }

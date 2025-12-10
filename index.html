@@ -15,6 +15,8 @@
         <div class="mode-controls-panel">
             <button id="modeGameBtn" class="mode-btn active" onclick="game.setMode('game')">Modo Juego</button>
             <button id="modeEditBtn" class="mode-btn" onclick="game.setMode('edit')">Modo Edición</button>
+            <!-- Botón de música -->
+            <button id="musicBtn" class="mode-btn" onclick="game.toggleMusic()">🎵 Reproducir Música</button>
         </div>
 
         <div class="header">
@@ -25,15 +27,12 @@
         </div>
 
         <div class="controls-panel">
-            <div class="dropdown" id="actionsDropdown">
-                <button class="dropdown-toggle" id="mainActionsBtn">Acciones</button>
-                <div class="dropdown-menu" id="mainActionsMenu">
-                    <button onclick="game.playerManager.add()">➕ Agregar Jugador</button>
-                    <button onclick="game.teamManager.openTeamCreator()">👥 Crear Equipo (Grupal)</button>
-                    <button onclick="game.editor.open()">✏️ Editar Preguntas</button>
-                    <button onclick="game.pointsManager.resetScores()">🔄 Reiniciar Puntos</button>
-                    <button onclick="game.pointsManager.resetQuestions()">❌ Reiniciar Preguntas Usadas</button>
-                </div>
+            <div class="actions-list" id="actionsDropdown">
+                <button class="action-btn" onclick="game.playerManager.add()">➕ Agregar Jugador</button>
+                <button class="action-btn" onclick="game.teamManager.create()">👥 Crear Equipo (Grupal)</button>
+                <button class="action-btn" onclick="game.editor.open()">✏️ Editar Preguntas</button>
+                <button class="action-btn" onclick="game.pointsManager.resetScores()">🔄 Reiniciar Puntos</button>
+                <button class="action-btn" onclick="game.pointsManager.resetQuestions()">❌ Reiniciar Preguntas Usadas</button>
             </div>
         </div>
 
@@ -82,7 +81,7 @@
     <div class="editor-modal" id="editorModal">
         <div class="editor-content">
             <h2 id="editorTitle">Editor de Juego</h2>
-            
+
             <button class="add-category-btn" onclick="game.editor.addCategory()">+ Agregar Categoría</button>
 
             <div id="categoriesEditor"></div>
@@ -99,6 +98,7 @@
         </div>
     </div>
 
+    <audio id="gameMusic" src="./musica_concurso.mp3" loop></audio>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script type="module" src="js/main.js"></script>
 </body>

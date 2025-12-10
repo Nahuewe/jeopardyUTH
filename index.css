@@ -11,6 +11,7 @@
     --text-color: #dcddde;
     --accent-blue: #5865f2;
     --options-color: #299d9f;
+    --mode-color: #7d0585;
     --success-green: #57f287;
     --danger-red: #f04747;
     --warning-orange: #faa61a;
@@ -682,6 +683,32 @@ textarea {
     background: var(--bg-primary);
 }
 
+.actions-list {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.action-btn {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    background: var(--mode-color);
+    color: white;
+    font-size: 1.05rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+}
+
+.action-btn:hover {
+    background: #cc62d3;
+    transform: translateY(-2px);
+}
+
 .editor-actions {
     display: flex;
     justify-content: space-between;
@@ -848,7 +875,7 @@ textarea {
     padding: 25px;
     border-radius: 12px;
     border: 1px solid var(--accent-blue);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .final-question-editor h3 {
@@ -904,7 +931,7 @@ textarea {
     border-radius: 8px;
     padding: 20px;
     color: var(--text-color);
-    box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
     min-height: 180px;
 }
 
@@ -1002,13 +1029,13 @@ textarea {
     transition: 0.2s ease-in-out;
     text-align: center;
     user-select: none;
-    box-shadow: 0 0 12px rgba(0,0,0,0.4);
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
 }
 
 .final-question-tile:hover {
     background: #2f2f2f;
     transform: translateY(-3px);
-    box-shadow: 0 0 18px rgba(0,0,0,0.6);
+    box-shadow: 0 0 18px rgba(0, 0, 0, 0.6);
 }
 
 .final-title {
@@ -1039,7 +1066,7 @@ textarea {
     align-items: center;
     cursor: pointer;
     transition: 0.2s ease;
-    box-shadow: 0 0 10px rgba(0,0,0,0.4);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
 }
 
 .final-question-tile:hover {
@@ -1077,9 +1104,17 @@ textarea {
 }
 
 @keyframes glowBorder {
-    0% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
-    50% { box-shadow: 0 0 18px rgba(255, 215, 0, 0.7); }
-    100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+    0% {
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 18px rgba(255, 215, 0, 0.7);
+    }
+
+    100% {
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
 }
 
 .final-question .question-header h3 {
@@ -1120,4 +1155,17 @@ textarea {
 .final-question .media-preview button {
     background-color: #e1b12c !important;
     color: black !important;
+}
+
+#musicBtn {
+    margin-left: 10px;
+    background-color: #eca919;
+    color: white;
+    font-weight: bold;
+    border-radius: 8px;
+    transition: 0.2s;
+}
+
+#musicBtn:hover {
+    background-color: #f3b633;
 }
