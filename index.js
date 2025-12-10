@@ -107,12 +107,12 @@ async function loadGameData() {
     const saved = await loadGameDataDB();
     if (saved) {
         roundsData = saved;
-        if (!roundsData.individual) roundsData.individual = { categories: [], questions: [], name: "Ronda Individual" };
-        if (!roundsData.grupal) roundsData.grupal = { categories: [], questions: [], name: "Ronda Grupal" };
+        if (!roundsData.individual) roundsData.individual = { categories: [], questions: [], name: "Ronda Individual", finalQuestion: null };
+        if (!roundsData.grupal) roundsData.grupal = { categories: [], questions: [], name: "Ronda Grupal", finalQuestion: null };
     } else {
         roundsData = {
-            individual: { categories: [], questions: [], name: "Ronda Individual" },
-            grupal: { categories: [], questions: [], name: "Ronda Grupal" }
+            individual: { categories: [], questions: [], name: "Ronda Individual", finalQuestion: null },
+            grupal: { categories: [], questions: [], name: "Ronda Grupal", finalQuestion: null }
         };
     }
 }
@@ -168,6 +168,7 @@ function setMode(mode) {
     if (mode === 'game') {
         renderScoreboard();
         renderBoard();
+        renderFinalQuestionTile();
         closeEditor();
     } else {
         renderTabs();
@@ -216,11 +217,53 @@ function switchRound(roundKey) {
 
     if (currentMode === 'game') {
         renderBoard();
+        renderFinalQuestionTile();
     }
 
     if (currentMode === 'edit') {
         renderTabs();
     }
+}
+
+/* ================================
+   EFECTOS DE VICTORIA (ANIMACIÓN + SONIDO)
+================================ */
+
+function playWinEffects() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const now = ctx.currentTime;
+
+        const t = 0.08;
+        const freqs = [880, 988, 1318];
+        freqs.forEach((f, i) => {
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.type = 'sine';
+            o.frequency.setValueAtTime(f, now + i * t);
+            g.gain.setValueAtTime(0, now + i * t);
+            g.gain.linearRampToValueAtTime(0.12, now + i * t + 0.01);
+            g.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * t);
+            o.connect(g);
+            g.connect(ctx.destination);
+            o.start(now + i * t);
+            o.stop(now + (i + 1) * t);
+        });
+    } catch (e) {
+        console.warn("WebAudio no pudo iniciarse:", e);
+    }
+
+    const container = document.createElement('div');
+    container.className = 'money-anim-container';
+    container.innerHTML = new Array(18).fill(0).map((_, i) =>
+        `<span class="money-anim-item" style="left:${Math.random() * 100}%; animation-delay:${(Math.random() * 0.6).toFixed(2)}s; transform: translateY(-10vh) rotate(${Math.random() * 360}deg)">${['💸', '💵', '🪙'][Math.floor(Math.random() * 3)]}</span>`
+    ).join('');
+    document.body.appendChild(container);
+
+    setTimeout(() => {
+        container.classList.add('fade-out');
+        setTimeout(() => container.remove(), 600);
+    }, 2500);
 }
 
 /* ================================
@@ -270,6 +313,82 @@ function renderBoard() {
         });
         board.appendChild(column);
     });
+
+    renderFinalQuestion();
+}
+
+function renderFinalQuestion() {
+    const currentData = getCurrentRoundData();
+    const fq = currentData.finalQuestion;
+    const existing = document.getElementById('finalQuestionWide');
+    if (existing) existing.remove();
+
+    if (!fq) return;
+
+    const finalWrapper = document.createElement('div');
+    finalWrapper.id = 'finalQuestionWide';
+    finalWrapper.className = 'final-question-wide';
+    finalWrapper.style.border = `3px dashed ${activeRound === 'individual' ? 'var(--accent)' : '#ffd700'}`;
+}
+
+function renderFinalQuestionTile() {
+    const gameContainer = document.getElementById("gameModeContainer");
+    let finalTile = document.getElementById("finalQuestionTile");
+
+    if (!finalTile) {
+        finalTile = document.createElement("div");
+        finalTile.id = "finalQuestionTile";
+        finalTile.className = "final-question-tile";
+        finalTile.onclick = () => openFinalQuestion();
+        gameContainer.appendChild(finalTile);
+    }
+
+    const currentData = roundsData[activeRound] || {};
+    const data = currentData.finalQuestion || { value: 0 };
+
+    finalTile.innerHTML = `
+        <div class="final-title">PREGUNTA FINAL</div>
+        <div class="final-value">$${data.value || 0}</div>
+    `;
+}
+
+function openFinalQuestion() {
+    const currentData = getCurrentRoundData();
+    const questionData = currentData.finalQuestion;
+    if (!questionData || questionData.used) return;
+
+    currentQuestionLocation = { col: -1, row: -1 };
+    currentQuestionPoints = questionData.value;
+    usedMultipleChoice = false;
+
+    document.getElementById('categoryTitle').textContent = currentData.name + " - FINAL";
+    document.getElementById('pointValue').textContent = `$${questionData.value}`;
+
+    const qContent = document.getElementById('questionText');
+    qContent.innerHTML = '';
+
+    if (currentTypingInterval) {
+        clearInterval(currentTypingInterval);
+    }
+
+    let mediaHTML = '';
+    if (questionData.media1) {
+        if (questionData.media1.type === "image") mediaHTML += `<img class="spoiler-content-media" src="${questionData.media1.url}" style="max-width:300px;">`;
+        if (questionData.media1.type === "audio") mediaHTML += `<audio class="spoiler-content-media" src="${questionData.media1.url}" controls style="width:20rem; height:2rem;"></audio>`;
+        if (questionData.media1.type === "video") mediaHTML += `<video class="spoiler-content-media" src="${questionData.media1.url}" controls style="max-width:320px;"></video>`;
+    }
+    if (questionData.media2) {
+        if (questionData.media2.type === "image") mediaHTML += `<img class="spoiler-content-media" src="${questionData.media2.url}" style="max-width:300px;">`;
+        if (questionData.media2.type === "audio") mediaHTML += `<audio class="spoiler-content-media" src="${questionData.media2.url}" controls style="width:20rem; height:2rem;"></audio>`;
+        if (questionData.media2.type === "video") mediaHTML += `<video class="spoiler-content-media" src="${questionData.media2.url}" controls style="max-width:320px;"></video>`;
+    }
+
+    currentTypingInterval = typeWriterEffect(qContent, questionData.question || "(Sin texto)", mediaHTML);
+    document.getElementById('answerText').textContent = `${questionData.answer}`;
+    document.getElementById('answerText').classList.remove('show');
+    document.getElementById('modal').classList.add('active');
+
+    updateQuestionModal(questionData);
 }
 
 /* ================================
@@ -516,26 +635,41 @@ function showOptions() {
     if (!questionData.multipleChoice || usedMultipleChoice) return;
 
     usedMultipleChoice = true;
-    const newPoints = Math.ceil(currentQuestionPoints / 2);
 
-    const optionsHtml = questionData.multipleChoice
-        .split('/')
-        .map(opt => `<p class="multiple-choice-option">${opt.trim()}</p>`)
-        .join('');
+    const multipleChoiceContainer = document.getElementById('multipleChoiceContainer');
+    const multipleChoiceText = document.getElementById('multipleChoiceText');
+    multipleChoiceContainer.classList.add('show');
+    multipleChoiceText.innerHTML = '';
 
-    document.getElementById('multipleChoiceText').innerHTML = optionsHtml;
-    document.getElementById('multipleChoiceContainer').classList.add('show');
-    document.getElementById('btnShowOptions').style.display = 'none';
-    document.getElementById('pointValue').textContent = `$${newPoints} (-50%)`;
+    const options = questionData.multipleChoice.split('/').map(o => o.trim());
 
-    const playersArea = document.getElementById("playersArea");
-    playersArea.querySelectorAll('.player-add').forEach(button => {
-        const pointSpan = button.querySelector('.point-value-display');
-        if (pointSpan) pointSpan.textContent = newPoints;
-        const originalOnClick = button.getAttribute('onclick');
-        const newOnClick = originalOnClick.replace(`, false)`, `, true)`);
-        button.setAttribute('onclick', newOnClick);
-    });
+    let index = 0;
+
+    function typeNextOption() {
+        if (index >= options.length) return;
+
+        const p = document.createElement('p');
+        p.className = 'multiple-choice-option';
+        multipleChoiceText.appendChild(p);
+
+        let charIndex = 0;
+        const text = options[index];
+
+        const interval = setInterval(() => {
+            if (charIndex < text.length) {
+                p.textContent += text.charAt(charIndex);
+                charIndex++;
+            } else {
+                clearInterval(interval);
+                index++;
+
+                // ⏳ Espera de 2 segundos antes de escribir la siguiente opción
+                setTimeout(() => typeNextOption(), 2000);
+            }
+        }, TYPING_SPEED);
+    }
+
+    typeNextOption();
 }
 
 function awardTeamPoints(teamIndex, points, col, row, usedOptions) {
@@ -543,13 +677,21 @@ function awardTeamPoints(teamIndex, points, col, row, usedOptions) {
     teams[teamIndex].score += finalPoints;
 
     const currentData = getCurrentRoundData();
-    currentData.questions[col][row].used = true;
-    currentData.questions[col][row].usedWithOptions = usedOptions;
+    if (col === -1) {
+        if (!currentData.finalQuestion) currentData.finalQuestion = {};
+        currentData.finalQuestion.used = true;
+        currentData.finalQuestion.usedWithOptions = usedOptions;
+    } else {
+        currentData.questions[col][row].used = true;
+        currentData.questions[col][row].usedWithOptions = usedOptions;
+    }
 
+    playWinEffects();
     renderScoreboard();
     saveTeams();
     saveGameDataUsed();
     renderBoard();
+    renderFinalQuestionTile();
     closeModal();
 }
 
@@ -608,13 +750,21 @@ function awardPoints(playerIndex, points, col, row, usedOptions) {
     players[playerIndex].score += finalPoints;
 
     const currentData = getCurrentRoundData();
-    currentData.questions[col][row].used = true;
-    currentData.questions[col][row].usedWithOptions = usedOptions;
+    if (col === -1) {
+        if (!currentData.finalQuestion) currentData.finalQuestion = {};
+        currentData.finalQuestion.used = true;
+        currentData.finalQuestion.usedWithOptions = usedOptions;
+    } else {
+        currentData.questions[col][row].used = true;
+        currentData.questions[col][row].usedWithOptions = usedOptions;
+    }
 
+    playWinEffects();
     renderScoreboard();
     savePlayers();
     saveGameDataUsed();
     renderBoard();
+    renderFinalQuestionTile();
     closeModal();
 }
 
@@ -701,6 +851,8 @@ function editPlayerName(index) {
             <label style="margin-top:10px; font-weight:bold;">Color:</label>
             <input id="editColor" type="color" value="${players[index].color}"
                 style="width: 100%; height: 50px; border-radius: 8px; cursor: pointer; margin-top:5px;">
+            <label style="margin-top:10px; font-weight:bold;">Puntos:</label>
+            <input id="editScore" type="number" class="swal2-input" value="${players[index].score}" min="-999999" step="1">
         `,
         focusConfirm: false,
         showCancelButton: true,
@@ -710,16 +862,18 @@ function editPlayerName(index) {
         preConfirm: () => {
             const name = document.getElementById("editName").value.trim();
             const color = document.getElementById("editColor").value;
+            const score = parseInt(document.getElementById("editScore").value) || 0;
             if (!name) {
                 Swal.showValidationMessage("El nombre no puede estar vacío.");
                 return false;
             }
-            return { name, color };
+            return { name, color, score };
         }
     }).then(result => {
         if (result.isConfirmed) {
             players[index].name = result.value.name;
             players[index].color = result.value.color;
+            players[index].score = result.value.score;
             savePlayers();
             renderScoreboard();
             Swal.fire({
@@ -929,6 +1083,7 @@ function resetQuestions() {
             usedCells.clear();
             saveGameDataUsed();
             renderBoard();
+            renderFinalQuestionTile();
             Swal.fire({
                 icon: 'success',
                 title: 'Preguntas reiniciadas',
@@ -942,18 +1097,6 @@ function resetQuestions() {
 /* ================================
    EDITOR DE CATEGORÍAS Y PREGUNTAS
 ================================ */
-
-function openEditor() {
-    editingGameData = JSON.parse(JSON.stringify(roundsData[activeRound]));
-    document.getElementById('editorTitle').textContent = `Editor de: ${roundsData[activeRound].name}`;
-    renderEditor();
-    document.getElementById('editorModal').classList.add('active');
-}
-
-function closeEditor() {
-    document.getElementById('editorModal').classList.remove('active');
-    editingGameData = null;
-}
 
 function renderEditor() {
     const container = document.getElementById('categoriesEditor');
@@ -995,8 +1138,7 @@ function renderEditor() {
                         : `<video src="${q.media1.url}" controls style="max-width:800px;"></video>`
                 }
                             <button onclick="removeMedia(${catIndex}, ${qIndex}, 'media1')">Quitar</button>
-                        </div>` : ''
-            }
+                        </div>` : ''}
                 </div>
                 <div class="media-section">
                     <label>Multimedia 2 (Imagen/Audio/Video):</label>
@@ -1010,8 +1152,7 @@ function renderEditor() {
                         : `<video src="${q.media2.url}" controls style="max-width:800px;"></video>`
                 }
                             <button onclick="removeMedia(${catIndex}, ${qIndex}, 'media2')">Quitar</button>
-                        </div>` : ''
-            }
+                        </div>` : ''}
                 </div>
             </div>
         `).join('');
@@ -1026,6 +1167,99 @@ function renderEditor() {
         `;
         container.appendChild(categoryDiv);
     });
+
+    const finalDiv = document.createElement('div');
+    finalDiv.className = 'final-question-editor';
+    const fq = editingGameData.finalQuestion || { value: 500, question: '', answer: '', media1: null, media2: null, multipleChoice: '', used: false, usedWithOptions: false };
+
+    finalDiv.innerHTML = `
+        <h3 style="margin-top:1rem; border-top:1px dashed #444; padding-top:0.75rem;">Pregunta Final (Siempre visible)</h3>
+        <label>Puntos:</label>
+        <input type="number" value="${fq.value}" id="final_value" min="0" step="50">
+        <label>Pregunta:</label>
+        <textarea id="final_question">${fq.question || ''}</textarea>
+        <label>Respuesta:</label>
+        <textarea id="final_answer">${fq.answer || ''}</textarea>
+        <label>Opciones Múltiple:</label>
+        <textarea id="final_multipleChoice" placeholder="Separar con /">${fq.multipleChoice || ''}</textarea>
+        <div class="media-section">
+            <label>Multimedia 1:</label>
+            <input type="file" id="final_media1" accept="image/*,video/*,audio/*">
+            <div id="final_media1_preview">${fq.media1 ? previewForMedia(fq.media1) : ''}</div>
+        </div>
+        <div class="media-section">
+            <label>Multimedia 2:</label>
+            <input type="file" id="final_media2" accept="image/*,video/*,audio/*">
+            <div id="final_media2_preview">${fq.media2 ? previewForMedia(fq.media2) : ''}</div>
+        </div>
+        <div style="margin-top:0.5rem;">
+            <button onclick="saveFinalQuestion()">Guardar Pregunta Final</button>
+            <button onclick="clearFinalQuestion()" style="background:var(--danger-red); color:white;">Eliminar Final</button>
+        </div>
+    `;
+
+    container.appendChild(finalDiv);
+
+    document.getElementById('final_media1').addEventListener('change', (e) => handleMediaUpload(e, -1, 0, 'media1'));
+    document.getElementById('final_media2').addEventListener('change', (e) => handleMediaUpload(e, -1, 0, 'media2'));
+}
+
+function openEditor() {
+    editingGameData = JSON.parse(JSON.stringify(roundsData[activeRound]));
+    document.getElementById('editorTitle').textContent = `Editor de: ${roundsData[activeRound].name}`;
+    renderEditor();
+    document.getElementById('editorModal').classList.add('active');
+}
+
+function closeEditor() {
+    document.getElementById('editorModal').classList.remove('active');
+    editingGameData = null;
+}
+
+function previewForMedia(media) {
+    if (!media) return '';
+    if (media.type === 'image') return `<img src="${media.url}" style="max-width:200px;"> <button onclick="removeMedia(-1,0,'media1')">Quitar</button>`;
+    if (media.type === 'audio') return `<audio src="${media.url}" controls style="max-width:200px;"></audio> <button onclick="removeMedia(-1,0,'media1')">Quitar</button>`;
+    return `<video src="${media.url}" controls style="max-width:320px;"></video> <button onclick="removeMedia(-1,0,'media1')">Quitar</button>`;
+}
+
+function saveFinalQuestion() {
+    editingGameData.finalQuestion = {
+        value: parseInt(document.getElementById("final_value").value),
+        question: document.getElementById("final_question").value,
+        answer: document.getElementById("final_answer").value,
+        multipleChoice: document.getElementById("final_multipleChoice").value,
+        media1: editingGameData.finalQuestion?.media1 || null,
+        media2: editingGameData.finalQuestion?.media2 || null
+    };
+
+    saveGame(); // este ya guarda + renderiza tablero
+
+    updateFinalQuestionUI(); // ← ACTUALIZA EL TEXTO Y VALOR EN LA UI
+}
+
+function updateFinalQuestionUI() {
+    const textEl = document.getElementById('finalQuestionText');
+    const valueEl = document.getElementById('finalQuestionValue');
+
+    if (!textEl || !valueEl) return; // Si no existe en el HTML, no rompe nada
+
+    const finalQ = roundsData[activeRound].finalQuestion;
+
+    if (!finalQ) {
+        textEl.textContent = "Sin pregunta final";
+        valueEl.textContent = "$0";
+        return;
+    }
+
+    textEl.textContent = finalQ.question || "Sin pregunta final";
+    valueEl.textContent = `$${finalQ.value ?? 0}`;
+}
+
+function clearFinalQuestion() {
+    editingGameData.finalQuestion = null;
+    renderEditor();
+    Swal.fire({ icon: 'info', title: 'Eliminada', text: 'Pregunta final borrada.' });
 }
 
 /* ================================
@@ -1130,11 +1364,14 @@ function saveGame() {
 
     roundsData[activeRound].categories = editingGameData.categories;
     roundsData[activeRound].questions = editingGameData.questions;
+    roundsData[activeRound].finalQuestion = editingGameData.finalQuestion || null;
 
     saveGameDataDB();
 
     closeEditor();
     renderBoard();
+    renderFinalQuestionTile();
+    updateFinalQuestionUI();
 
     Swal.fire({
         icon: 'success',
@@ -1149,31 +1386,42 @@ function saveGame() {
 ================================ */
 
 function handleMediaUpload(event, catIndex, qIndex, mediaSlot) {
-    const file = event.target.files[0];
+    const file = event.target.files ? event.target.files[0] : null;
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = () => {
         let type;
-        if (file.type.startsWith("video")) {
-            type = "video";
-        } else if (file.type.startsWith("audio")) {
-            type = "audio";
-        } else {
-            type = "image";
-        }
+        if (file.type.startsWith("video")) type = "video";
+        else if (file.type.startsWith("audio")) type = "audio";
+        else type = "image";
 
-        editingGameData.questions[catIndex][qIndex][mediaSlot] = {
-            type: type,
-            url: reader.result
-        };
+        const mediaObj = { type, url: reader.result };
+
+        if (catIndex === -1) {
+            if (!editingGameData.finalQuestion) editingGameData.finalQuestion = { value: 500, question: '', answer: '', multipleChoice: '', media1: null, media2: null, used: false, usedWithOptions: false };
+            if (mediaSlot === 'media1') editingGameData.finalQuestion.media1 = mediaObj;
+            else editingGameData.finalQuestion.media2 = mediaObj;
+            const previewId = mediaSlot === 'media1' ? 'final_media1_preview' : 'final_media2_preview';
+            const previewEl = document.getElementById(previewId);
+            if (previewEl) previewEl.innerHTML = previewForMedia(mediaObj);
+        } else {
+            editingGameData.questions[catIndex][qIndex][mediaSlot] = mediaObj;
+        }
         renderEditor();
     };
-
     reader.readAsDataURL(file);
 }
 
 function removeMedia(catIndex, qIndex, mediaSlot) {
-    editingGameData.questions[catIndex][qIndex][mediaSlot] = null;
-    renderEditor();
+    if (catIndex === -1) {
+        if (editingGameData.finalQuestion) {
+            if (mediaSlot === 'media1') editingGameData.finalQuestion.media1 = null;
+            else editingGameData.finalQuestion.media2 = null;
+            renderEditor();
+        }
+    } else {
+        editingGameData.questions[catIndex][qIndex][mediaSlot] = null;
+        renderEditor();
+    }
 }

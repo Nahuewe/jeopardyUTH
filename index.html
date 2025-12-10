@@ -13,8 +13,8 @@
 <body>
     <div class="container">
         <div class="mode-controls-panel">
-            <button id="modeGameBtn" class="mode-btn active" onclick="setMode('game')">Modo Juego</button>
-            <button id="modeEditBtn" class="mode-btn" onclick="setMode('edit')">Modo Edición</button>
+            <button id="modeGameBtn" class="mode-btn active" onclick="game.setMode('game')">Modo Juego</button>
+            <button id="modeEditBtn" class="mode-btn" onclick="game.setMode('edit')">Modo Edición</button>
         </div>
 
         <div class="header">
@@ -26,13 +26,13 @@
 
         <div class="controls-panel">
             <div class="dropdown" id="actionsDropdown">
-                <button class="dropdown-toggle" id="mainActionsBtn" onclick="toggleDropdown()">Acciones</button>
+                <button class="dropdown-toggle" id="mainActionsBtn">Acciones</button>
                 <div class="dropdown-menu" id="mainActionsMenu">
-                    <button onclick="addPlayer()">➕ Agregar Jugador</button>
-                    <button onclick="openTeamCreator()">👥 Crear Equipo (Grupal)</button>
-                    <button onclick="openEditor()">✏️ Editar Preguntas</button>
-                    <button onclick="resetScores()">🔄 Reiniciar Puntos</button>
-                    <button onclick="resetQuestions()">❌ Reiniciar Preguntas Usadas</button>
+                    <button onclick="game.playerManager.add()">➕ Agregar Jugador</button>
+                    <button onclick="game.teamManager.openTeamCreator()">👥 Crear Equipo (Grupal)</button>
+                    <button onclick="game.editor.open()">✏️ Editar Preguntas</button>
+                    <button onclick="game.pointsManager.resetScores()">🔄 Reiniciar Puntos</button>
+                    <button onclick="game.pointsManager.resetQuestions()">❌ Reiniciar Preguntas Usadas</button>
                 </div>
             </div>
         </div>
@@ -40,6 +40,8 @@
         <div id="gameModeContainer" class="mode-content">
             <div class="scoreboard" id="scoreboard"></div>
             <div class="board" id="board"></div>
+            <div id="finalQuestionText"></div>
+            <div id="finalQuestionValue"></div>
         </div>
 
         <div id="editModeContainer" class="mode-content" style="display:none;">
@@ -66,9 +68,11 @@
 
             <div class="buttons-top">
                 <button class="btn info" style="background-color: yellow;" id="btnShowOptions"
-                    onclick="showOptions()">Ver Pistas (50%)</button>
-                <button class="btn" onclick="showAnswer()">Mostrar Respuesta</button>
-                <button class="btn danger" onclick="closeModal()">Cerrar</button>
+                    onclick="game.questionModal.showOptions()">Ver Pistas (50%)</button>
+
+                <button class="btn" onclick="game.questionModal.showAnswer()">Mostrar Respuesta</button>
+
+                <button class="btn danger" onclick="game.questionModal.close()">Cerrar</button>
             </div>
 
             <div class="players-area" id="playersArea"></div>
@@ -78,24 +82,25 @@
     <div class="editor-modal" id="editorModal">
         <div class="editor-content">
             <h2 id="editorTitle">Editor de Juego</h2>
+            
+            <button class="add-category-btn" onclick="game.editor.addCategory()">+ Agregar Categoría</button>
+
             <div id="categoriesEditor"></div>
 
-            <button class="add-category-btn" onclick="addCategory()">+ Agregar Categoría</button>
-
             <div class="editor-actions">
-                <button class="btn btn-save" onclick="saveGame()">Guardar Cambios</button>
-                <button class="btn danger btn-cancel" onclick="closeEditor()">Cancelar</button>
+                <button class="btn btn-save" onclick="game.editor.save()">Guardar Cambios</button>
+                <button class="btn danger btn-cancel" onclick="game.editor.close()">Cancelar</button>
             </div>
         </div>
     </div>
 
     <div class="editor-modal" id="questionEditorModal">
         <div class="editor-content" id="questionEditorContent">
-            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="index.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 
 </html>
