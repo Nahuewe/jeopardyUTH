@@ -84,32 +84,47 @@ class JeopardyGame {
         this.state.teams = Storage.loadTeams();
     }
 
-    setupEventListeners() {
-        // Botones de modo
-        document.getElementById('modeGameBtn').onclick = () => this.setMode('game');
-        document.getElementById('modeEditBtn').onclick = () => this.setMode('edit');
+setupEventListeners() {
+    // Botones de modo
+    document.getElementById('modeGameBtn').onclick = () => this.setMode('game');
+    document.getElementById('modeEditBtn').onclick = () => this.setMode('edit');
 
-        // Menú desplegable
-        const mainBtn = document.getElementById("mainActionsBtn");
-        const menu = document.getElementById("mainActionsMenu");
+    // Menú desplegable
+    const mainBtn = document.getElementById("mainActionsBtn");
+    const menu = document.getElementById("mainActionsMenu");
 
-        if (mainBtn && menu) {
-            mainBtn.onclick = () => menu.classList.toggle("open");
+    if (mainBtn && menu) {
+        mainBtn.onclick = () => menu.classList.toggle("open");
 
-            document.addEventListener("click", (e) => {
-                const dropdown = document.getElementById("actionsDropdown");
-                if (dropdown && !dropdown.contains(e.target)) {
-                    menu.classList.remove("open");
-                }
-            });
-        }
-
-        // Botón para mostrar respuesta en modal
-        const showAnswerBtn = document.getElementById('showAnswerBtn');
-        if (showAnswerBtn) {
-            showAnswerBtn.onclick = () => this.questionModal.showAnswer();
-        }
+        document.addEventListener("click", (e) => {
+            const dropdown = document.getElementById("actionsDropdown");
+            if (dropdown && !dropdown.contains(e.target)) {
+                menu.classList.remove("open");
+            }
+        });
     }
+
+    // Botón para mostrar respuesta en modal
+    const showAnswerBtn = document.getElementById('showAnswerBtn');
+    if (showAnswerBtn) {
+        showAnswerBtn.onclick = () => this.questionModal.showAnswer();
+    }
+
+    // ⭐ CONTROL DE VOLUMEN ⭐
+    const volumeSlider = document.getElementById("musicVolume");
+    const audio = document.getElementById("gameMusic");
+
+    if (volumeSlider && audio) {
+        // Volumen inicial
+        audio.volume = parseFloat(volumeSlider.value);
+
+        // Cambios de volumen en tiempo real
+        volumeSlider.addEventListener("input", () => {
+            audio.volume = parseFloat(volumeSlider.value);
+        });
+    }
+}
+
 
     setMode(mode) {
         this.state.setMode(mode);
@@ -135,6 +150,10 @@ class JeopardyGame {
         } else {
             this.renderTabs();
         }
+    }
+
+    toggleMusic() {
+        this.state.toggleMusic();
     }
 
     renderTabs() {

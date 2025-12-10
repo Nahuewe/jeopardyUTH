@@ -17,6 +17,12 @@
             <button id="modeEditBtn" class="mode-btn" onclick="game.setMode('edit')">Modo Edición</button>
             <!-- Botón de música -->
             <button id="musicBtn" class="mode-btn" onclick="game.toggleMusic()">🎵 Reproducir Música</button>
+            <!-- ⭐ CONTROL DE VOLUMEN ⭐ -->
+            <div id="volumeContainer" style="margin-top: 10px; text-align:center; display:none;">
+                <label for="musicVolume" style="color:white; font-weight:bold;">Volumen</label><br>
+                <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.5"
+                    style="width:150px; cursor:pointer;">
+            </div>
         </div>
 
         <div class="header">
@@ -32,7 +38,8 @@
                 <button class="action-btn" onclick="game.teamManager.create()">👥 Crear Equipo (Grupal)</button>
                 <button class="action-btn" onclick="game.editor.open()">✏️ Editar Preguntas</button>
                 <button class="action-btn" onclick="game.pointsManager.resetScores()">🔄 Reiniciar Puntos</button>
-                <button class="action-btn" onclick="game.pointsManager.resetQuestions()">❌ Reiniciar Preguntas Usadas</button>
+                <button class="action-btn" onclick="game.pointsManager.resetQuestions()">❌ Reiniciar Preguntas
+                    Usadas</button>
             </div>
         </div>
 
@@ -98,7 +105,7 @@
         </div>
     </div>
 
-    <audio id="gameMusic" src="./musica_concurso.mp3" loop></audio>
+    <audio id="gameMusic" src="./Música preguntas 1 - 5 (Quien Quiere ser millonario).mp3" loop></audio>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script type="module" src="js/main.js"></script>
 </body>

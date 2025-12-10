@@ -64,6 +64,7 @@ export class GameState {
     toggleMusic() {
         const audio = document.getElementById("gameMusic");
         const btn = document.getElementById("musicBtn");
+        const volumeContainer = document.getElementById("volumeContainer");
 
         if (!audio) return;
 
@@ -71,9 +72,20 @@ export class GameState {
             audio.volume = 0.35;
             audio.play();
             btn.textContent = "⏸️ Pausar Música";
+
+            // Mostrar volumen
+            if (volumeContainer) {
+                volumeContainer.style.display = "block";
+            }
+
         } else {
             audio.pause();
             btn.textContent = "🎵 Reproducir Música";
+
+            // Ocultar volumen
+            if (volumeContainer) {
+                volumeContainer.style.display = "none";
+            }
         }
     }
 }

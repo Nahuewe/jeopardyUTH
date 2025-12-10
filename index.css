@@ -1159,7 +1159,7 @@ textarea {
 
 #musicBtn {
     margin-left: 10px;
-    background-color: #eca919;
+    background-color: #ec1947;
     color: white;
     font-weight: bold;
     border-radius: 8px;
@@ -1167,5 +1167,5 @@ textarea {
 }
 
 #musicBtn:hover {
-    background-color: #f3b633;
+    background-color: #ed345c;
 }
