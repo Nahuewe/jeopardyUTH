@@ -23,10 +23,6 @@ const DB_NAME = 'JeopardyDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'roundsDataStore';
 
-/**
- * Inicializa la base de datos IndexedDB.
- * @returns {Promise<IDBDatabase>} La promesa resuelve con la instancia de la base de datos.
- */
 function openDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -49,16 +45,11 @@ function openDB() {
     });
 }
 
-/**
- * Guarda los datos de las rondas en IndexedDB.
- */
 async function saveGameDataDB() {
     try {
         const db = await openDB();
         const transaction = db.transaction([STORE_NAME], 'readwrite');
         const store = transaction.objectStore(STORE_NAME);
-
-        // Almacena el objeto roundsData completo con una clave fija
         const dataToStore = { id: 'currentRoundsData', data: roundsData };
         store.put(dataToStore);
 
@@ -72,10 +63,6 @@ async function saveGameDataDB() {
     }
 }
 
-/**
- * Carga los datos de las rondas desde IndexedDB.
- * @returns {Promise<object | null>} Los datos de las rondas o null si no se encuentran.
- */
 async function loadGameDataDB() {
     try {
         const db = await openDB();
@@ -268,7 +255,13 @@ function renderBoard() {
         questions.forEach((q, rowIndex) => {
             const cell = document.createElement("div");
             cell.className = "cell";
-            cell.textContent = `$${q.value}`;
+
+            let displayValue = q.value;
+            if (q.used && q.usedWithOptions) {
+                displayValue = Math.ceil(q.value / 2);
+            }
+
+            cell.textContent = `$${displayValue}`;
             cell.onclick = () => openQuestion(colIndex, rowIndex);
 
             if (q.used) cell.classList.add("used");
@@ -466,7 +459,6 @@ function openQuestion(col, row) {
 
     let mediaHTML = '';
 
-    // Procesar media1
     if (questionData.media1) {
         let mediaElement1;
         if (questionData.media1.type === "image") {
@@ -477,7 +469,7 @@ function openQuestion(col, row) {
             mediaElement1 = `<audio class="spoiler-content-media" src="${questionData.media1.url}" controls style="width:20rem; height:2rem;"></audio>`;
         }
 
-        if (questionData.media1.type === "image" || questionData.media1.type === "audio") {
+        if (questionData.media1.type === "image") {
             mediaHTML += `
                 <div class="spoiler-container" onclick="this.classList.add('revealed')">
                     <span class="spoiler-label">Click para revelar</span>
@@ -488,7 +480,6 @@ function openQuestion(col, row) {
         }
     }
 
-    // Procesar media2
     if (questionData.media2) {
         let mediaElement2;
         if (questionData.media2.type === "image") {
@@ -499,7 +490,7 @@ function openQuestion(col, row) {
             mediaElement2 = `<audio class="spoiler-content-media" src="${questionData.media2.url}" controls style="width:20rem; height:2rem;"></audio>`;
         }
 
-        if (questionData.media2.type === "image" || questionData.media2.type === "audio") {
+        if (questionData.media2.type === "image") {
             mediaHTML += `
                 <div class="spoiler-container" onclick="this.classList.add('revealed')">
                     <span class="spoiler-label">Click para revelar</span>
@@ -553,6 +544,7 @@ function awardTeamPoints(teamIndex, points, col, row, usedOptions) {
 
     const currentData = getCurrentRoundData();
     currentData.questions[col][row].used = true;
+    currentData.questions[col][row].usedWithOptions = usedOptions;
 
     renderScoreboard();
     saveTeams();
@@ -591,10 +583,16 @@ function showAnswer() {
 
 function closeModal() {
     document.getElementById('modal').classList.remove('active');
+
     if (currentTypingInterval) {
         clearInterval(currentTypingInterval);
         currentTypingInterval = null;
     }
+
+    document.querySelectorAll("#modal video, #modal audio").forEach(el => {
+        el.pause();
+        el.currentTime = 0;
+    });
 }
 
 document.getElementById('modal').onclick = function (e) {
@@ -611,6 +609,7 @@ function awardPoints(playerIndex, points, col, row, usedOptions) {
 
     const currentData = getCurrentRoundData();
     currentData.questions[col][row].used = true;
+    currentData.questions[col][row].usedWithOptions = usedOptions;
 
     renderScoreboard();
     savePlayers();
