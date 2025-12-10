@@ -474,13 +474,13 @@ function openQuestion(col, row) {
         } else if (questionData.media1.type === "video") {
             mediaElement1 = `<video class="spoiler-content-media" src="${questionData.media1.url}" controls style="max-width:320px;"></video>`;
         } else if (questionData.media1.type === "audio") {
-            mediaElement1 = `<audio class="spoiler-content-media" src="${questionData.media1.url}" controls style="max-width:200px;"></audio>`;
+            mediaElement1 = `<audio class="spoiler-content-media" src="${questionData.media1.url}" controls style="width:20rem; height:2rem;"></audio>`;
         }
 
         if (questionData.media1.type === "image" || questionData.media1.type === "audio") {
             mediaHTML += `
                 <div class="spoiler-container" onclick="this.classList.add('revealed')">
-                    <span class="spoiler-label">Click para revelar Media 1</span>
+                    <span class="spoiler-label">Click para revelar</span>
                     <div class="spoiler-content">${mediaElement1}</div>
                 </div>`;
         } else {
@@ -496,13 +496,13 @@ function openQuestion(col, row) {
         } else if (questionData.media2.type === "video") {
             mediaElement2 = `<video class="spoiler-content-media" src="${questionData.media2.url}" controls style="max-width:320px;"></video>`;
         } else if (questionData.media2.type === "audio") {
-            mediaElement2 = `<audio class="spoiler-content-media" src="${questionData.media2.url}" controls style="max-width:200px;"></audio>`;
+            mediaElement2 = `<audio class="spoiler-content-media" src="${questionData.media2.url}" controls style="width:20rem; height:2rem;"></audio>`;
         }
 
         if (questionData.media2.type === "image" || questionData.media2.type === "audio") {
             mediaHTML += `
                 <div class="spoiler-container" onclick="this.classList.add('revealed')">
-                    <span class="spoiler-label">Click para revelar Media 2</span>
+                    <span class="spoiler-label">Click para revelar</span>
                     <div class="spoiler-content">${mediaElement2}</div>
                 </div>`;
         } else {
@@ -990,10 +990,10 @@ function renderEditor() {
                     ${q.media1 ? `
                         <div class="media-preview">
                             ${q.media1.type === 'image'
-                    ? `<img src="${q.media1.url}" style="max-width:120px;">`
+                    ? `<img src="${q.media1.url}" style="max-width:200px;">`
                     : q.media1.type === 'audio'
-                        ? `<audio src="${q.media1.url}" controls style="max-width:150px;"></audio>`
-                        : `<video src="${q.media1.url}" controls style="max-width:150px;"></video>`
+                        ? `<audio src="${q.media1.url}" controls style="max-width:200px;"></audio>`
+                        : `<video src="${q.media1.url}" controls style="max-width:800px;"></video>`
                 }
                             <button onclick="removeMedia(${catIndex}, ${qIndex}, 'media1')">Quitar</button>
                         </div>` : ''
@@ -1005,10 +1005,10 @@ function renderEditor() {
                     ${q.media2 ? `
                         <div class="media-preview">
                             ${q.media2.type === 'image'
-                    ? `<img src="${q.media2.url}" style="max-width:120px;">`
+                    ? `<img src="${q.media2.url}" style="max-width:200px;">`
                     : q.media2.type === 'audio'
-                        ? `<audio src="${q.media2.url}" controls style="max-width:150px;"></audio>`
-                        : `<video src="${q.media2.url}" controls style="max-width:150px;"></video>`
+                        ? `<audio src="${q.media2.url}" controls style="max-width:200px;"></audio>`
+                        : `<video src="${q.media2.url}" controls style="max-width:800px;"></video>`
                 }
                             <button onclick="removeMedia(${catIndex}, ${qIndex}, 'media2')">Quitar</button>
                         </div>` : ''
