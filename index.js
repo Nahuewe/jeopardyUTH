@@ -16,12 +16,98 @@ let editingGameData = null;
 const TYPING_SPEED = 30;
 
 /* ================================
+    INDEXEDDB STORAGE (Para datos pesados como la partida)
+================================ */
+
+const DB_NAME = 'JeopardyDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'roundsDataStore';
+
+/**
+ * Inicializa la base de datos IndexedDB.
+ * @returns {Promise<IDBDatabase>} La promesa resuelve con la instancia de la base de datos.
+ */
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            }
+        };
+
+        request.onsuccess = (event) => {
+            resolve(event.target.result);
+        };
+
+        request.onerror = (event) => {
+            console.error("IndexedDB error:", event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+/**
+ * Guarda los datos de las rondas en IndexedDB.
+ */
+async function saveGameDataDB() {
+    try {
+        const db = await openDB();
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+
+        // Almacena el objeto roundsData completo con una clave fija
+        const dataToStore = { id: 'currentRoundsData', data: roundsData };
+        store.put(dataToStore);
+
+        await new Promise((resolve, reject) => {
+            transaction.oncomplete = resolve;
+            transaction.onerror = reject;
+        });
+        console.log("Datos de juego guardados en IndexedDB.");
+    } catch (error) {
+        console.error("Error al guardar en IndexedDB:", error);
+    }
+}
+
+/**
+ * Carga los datos de las rondas desde IndexedDB.
+ * @returns {Promise<object | null>} Los datos de las rondas o null si no se encuentran.
+ */
+async function loadGameDataDB() {
+    try {
+        const db = await openDB();
+        const transaction = db.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+
+        const request = store.get('currentRoundsData');
+
+        return new Promise((resolve, reject) => {
+            request.onsuccess = (event) => {
+                const result = event.target.result;
+                resolve(result ? result.data : null);
+            };
+            request.onerror = (event) => {
+                console.error("Error al cargar desde IndexedDB:", event.target.error);
+                reject(event.target.error);
+            };
+        });
+    } catch (error) {
+        console.error("No se pudo conectar a IndexedDB, cargando datos por defecto.");
+        return null;
+    }
+}
+
+/* ================================
    LOCAL STORAGE
 ================================ */
 
 function savePlayers() {
     localStorage.setItem("jeopardyPlayers", JSON.stringify(players));
 }
+
 function loadPlayers() {
     const saved = localStorage.getItem("jeopardyPlayers");
     players = saved ? JSON.parse(saved) : [];
@@ -29,10 +115,11 @@ function loadPlayers() {
         if (!p.color) p.color = generateColor();
     });
 }
-function loadGameData() {
-    const saved = localStorage.getItem("jeopardyRoundsData");
+
+async function loadGameData() {
+    const saved = await loadGameDataDB();
     if (saved) {
-        roundsData = JSON.parse(saved);
+        roundsData = saved;
         if (!roundsData.individual) roundsData.individual = { categories: [], questions: [], name: "Ronda Individual" };
         if (!roundsData.grupal) roundsData.grupal = { categories: [], questions: [], name: "Ronda Grupal" };
     } else {
@@ -44,20 +131,20 @@ function loadGameData() {
 }
 
 function saveGameDataUsed() {
-    localStorage.setItem("jeopardyRoundsData", JSON.stringify(roundsData));
+    saveGameDataDB();
 }
 
 function persistGameData() {
     roundsData[activeRound] = JSON.parse(JSON.stringify(editingGameData));
-    localStorage.setItem("jeopardyRoundsData", JSON.stringify(roundsData));
+    saveGameDataDB();
 }
 
 /* ================================
    INICIALIZACIÓN Y CAMBIO DE MODO
 ================================ */
 
-function initGame() {
-    loadGameData();
+async function initGame() {
+    await loadGameData();
     loadPlayers();
     loadTeams();
     setMode('game');
@@ -83,12 +170,10 @@ function setMode(mode) {
     document.getElementById('gameModeContainer').style.display = (mode === 'game' ? 'block' : 'none');
     document.getElementById('editModeContainer').style.display = (mode === 'edit' ? 'block' : 'none');
 
-    // 👇 Modificación clave aquí 👇
     const actionsDropdown = document.getElementById('actionsDropdown');
     if (actionsDropdown) {
         actionsDropdown.style.display = (mode === 'edit' ? 'flex' : 'none');
     }
-    // 👆 Fin de modificación 👆
 
     document.getElementById('modeGameBtn').classList.toggle('active', mode === 'game');
     document.getElementById('modeEditBtn').classList.toggle('active', mode === 'edit');
@@ -103,7 +188,7 @@ function setMode(mode) {
 }
 
 /* ================================
-   PESTAÑAS DE RONDAS (AHORA DENTRO DEL CONTENEDOR DE EDICIÓN)
+   PESTAÑAS DE RONDAS
 ================================ */
 
 function renderTabs() {
@@ -134,7 +219,11 @@ function switchRound(roundKey) {
     usedCells.clear();
 
     if (!roundsData[roundKey] || !roundsData[roundKey].categories) {
-        roundsData[roundKey] = { categories: [], questions: [], name: roundsData[roundKey] ? roundsData[roundKey].name : (roundKey === 'individual' ? "Ronda Individual" : "Ronda Grupal") };
+        roundsData[roundKey] = {
+            categories: [],
+            questions: [],
+            name: roundsData[roundKey] ? roundsData[roundKey].name : (roundKey === 'individual' ? "Ronda Individual" : "Ronda Grupal")
+        };
         saveGameDataUsed();
     }
 
@@ -148,7 +237,7 @@ function switchRound(roundKey) {
 }
 
 /* ================================
-   TABLERO PRINCIPAL (Solo se renderiza si es el modo activo)
+   TABLERO PRINCIPAL
 ================================ */
 
 function getCurrentRoundData() {
@@ -191,7 +280,7 @@ function renderBoard() {
 }
 
 /* ================================
-   SCOREBOARD (Solo se renderiza si es el modo activo)
+   SCOREBOARD
 ================================ */
 
 function renderScoreboard() {
@@ -230,7 +319,6 @@ function renderScoreboard() {
         playerCard.className = 'player-card';
         playerCard.style.border = `3px solid ${scorable.color}`;
 
-        let controlsHtml;
         let detailsHtml = '';
         let editAction;
         let removeAction;
@@ -258,12 +346,13 @@ function renderScoreboard() {
 }
 
 /* ================================
-   DROPDOWN PRINCIPAL (Añadido el cambio de modo al dropdown)
+   DROPDOWN PRINCIPAL
 ================================ */
 
 function toggleDropdown() {
     document.getElementById("mainActionsMenu").classList.toggle("open");
 }
+
 document.addEventListener("click", function (e) {
     const dropdown = document.getElementById("actionsDropdown");
     const menu = document.getElementById("mainActionsMenu");
@@ -301,51 +390,20 @@ function typeWriterEffect(element, text, mediaHTML = '') {
 ================================ */
 
 let currentTypingInterval = null;
+let currentQuestionPoints = 0;
+let currentQuestionLocation = { col: -1, row: -1 };
+let usedMultipleChoice = false;
 
-function openQuestion(col, row) {
-    const currentData = getCurrentRoundData();
-    const cellId = `${col}-${row}`;
+function updateQuestionModal(questionData) {
+    const multipleChoiceContainer = document.getElementById('multipleChoiceContainer');
+    const multipleChoiceText = document.getElementById('multipleChoiceText');
+    const btnShowOptions = document.getElementById('btnShowOptions');
+    const hasOptions = questionData.multipleChoice && questionData.multipleChoice.trim() !== '';
 
-    if (currentData.questions[col][row].used) return;
-
-    const questionData = currentData.questions[col][row];
-
-    document.getElementById('categoryTitle').textContent = currentData.categories[col];
-    document.getElementById('pointValue').textContent = `$${questionData.value}`;
-
-    const qContent = document.getElementById('questionText');
-    qContent.innerHTML = '';
-
-    if (currentTypingInterval) {
-        clearInterval(currentTypingInterval);
-    }
-
-    let mediaHTML = '';
-    if (questionData.media) {
-        let mediaElement;
-        if (questionData.media.type === "image") {
-            mediaElement = `<img class="spoiler-content-media" src="${questionData.media.url}" style="max-width:300px;">`;
-        } else if (questionData.media.type === "video") {
-            mediaElement = `<video class="spoiler-content-media" src="${questionData.media.url}" controls style="max-width:320px;"></video>`;
-        } else if (questionData.media.type === "audio") {
-            mediaElement = `<audio class="spoiler-content-media" src="${questionData.media.url}" controls style="max-width:200px;"></audio>`;
-        }
-
-        if (questionData.media.type === "image" || questionData.media.type === "audio") {
-            mediaHTML = `
-                <div class="spoiler-container" onclick="this.classList.add('revealed')">
-                    <span class="spoiler-label">Click para revelar</span>
-                    <div class="spoiler-content">${mediaElement}</div>
-                </div>`;
-        } else {
-            mediaHTML = `<br>${mediaElement}`;
-        }
-    }
-
-    currentTypingInterval = typeWriterEffect(qContent, questionData.question || "(Sin texto)", mediaHTML);
-    document.getElementById('answerText').textContent = `Respuesta: ${questionData.answer}`;
-    document.getElementById('answerText').classList.remove('show');
-    document.getElementById('modal').classList.add('active');
+    btnShowOptions.style.display = hasOptions ? 'block' : 'none';
+    multipleChoiceContainer.classList.remove('show');
+    multipleChoiceText.innerHTML = '';
+    usedMultipleChoice = false;
 
     const playersArea = document.getElementById("playersArea");
     let currentScorables;
@@ -362,29 +420,136 @@ function openQuestion(col, row) {
     if (!currentScorables.length) {
         playersArea.innerHTML = `<p style="color:var(--danger-red);">¡No hay ${activeRound === 'individual' ? 'jugadores' : 'equipos'} para asignar puntos!</p>`;
     } else {
-        playersArea.innerHTML = currentScorables.map((scorable, index) => `
-        <div class="player-btn-group">
-            <button
-                class="player-add"
-                style="background:${scorable.color}; color:white;"
-                onclick="${updateFunction}(${index}, ${questionData.value}, ${col}, ${row})"
-            >
-                ${scorable.name} +${questionData.value}
-            </button>
-            <button
-                class="player-deduct"
-                style="background:var(--danger-red); color: white;"
-                onclick="${updateFunction.replace('award', 'deduct')}(${index}, ${questionData.value})"
-            >
-                ${scorable.name} -${questionData.value}
-            </button>
-        </div>
-    `).join("");
+        playersArea.innerHTML = currentScorables.map((scorable, index) => {
+            const points = currentQuestionPoints;
+
+            return `
+                <div class="player-btn-group">
+                    <button
+                        class="player-add"
+                        style="background:${scorable.color}; color:white;"
+                        onclick="${updateFunction}(${index}, ${points}, ${currentQuestionLocation.col}, ${currentQuestionLocation.row}, false)"
+                    >
+                        ${scorable.name} +<span class="point-value-display">${points}</span>
+                    </button>
+                    <button
+                        class="player-deduct"
+                        style="background:var(--danger-red); color: white;"
+                        onclick="${updateFunction.replace('award', 'deduct')}(${index}, ${points})"
+                    >
+                        ${scorable.name} -${points}
+                    </button>
+                </div>
+            `;
+        }).join("");
     }
 }
 
-function awardTeamPoints(teamIndex, points, col, row) {
-    teams[teamIndex].score += points;
+function openQuestion(col, row) {
+    const currentData = getCurrentRoundData();
+    const questionData = currentData.questions[col][row];
+    if (questionData.used) return;
+
+    currentQuestionLocation = { col, row };
+    currentQuestionPoints = questionData.value;
+    usedMultipleChoice = false;
+
+    document.getElementById('categoryTitle').textContent = currentData.categories[col];
+    document.getElementById('pointValue').textContent = `$${questionData.value}`;
+
+    const qContent = document.getElementById('questionText');
+    qContent.innerHTML = '';
+
+    if (currentTypingInterval) {
+        clearInterval(currentTypingInterval);
+    }
+
+    let mediaHTML = '';
+
+    // Procesar media1
+    if (questionData.media1) {
+        let mediaElement1;
+        if (questionData.media1.type === "image") {
+            mediaElement1 = `<img class="spoiler-content-media" src="${questionData.media1.url}" style="max-width:300px;">`;
+        } else if (questionData.media1.type === "video") {
+            mediaElement1 = `<video class="spoiler-content-media" src="${questionData.media1.url}" controls style="max-width:320px;"></video>`;
+        } else if (questionData.media1.type === "audio") {
+            mediaElement1 = `<audio class="spoiler-content-media" src="${questionData.media1.url}" controls style="max-width:200px;"></audio>`;
+        }
+
+        if (questionData.media1.type === "image" || questionData.media1.type === "audio") {
+            mediaHTML += `
+                <div class="spoiler-container" onclick="this.classList.add('revealed')">
+                    <span class="spoiler-label">Click para revelar Media 1</span>
+                    <div class="spoiler-content">${mediaElement1}</div>
+                </div>`;
+        } else {
+            mediaHTML += `<br>${mediaElement1}`;
+        }
+    }
+
+    // Procesar media2
+    if (questionData.media2) {
+        let mediaElement2;
+        if (questionData.media2.type === "image") {
+            mediaElement2 = `<img class="spoiler-content-media" src="${questionData.media2.url}" style="max-width:300px;">`;
+        } else if (questionData.media2.type === "video") {
+            mediaElement2 = `<video class="spoiler-content-media" src="${questionData.media2.url}" controls style="max-width:320px;"></video>`;
+        } else if (questionData.media2.type === "audio") {
+            mediaElement2 = `<audio class="spoiler-content-media" src="${questionData.media2.url}" controls style="max-width:200px;"></audio>`;
+        }
+
+        if (questionData.media2.type === "image" || questionData.media2.type === "audio") {
+            mediaHTML += `
+                <div class="spoiler-container" onclick="this.classList.add('revealed')">
+                    <span class="spoiler-label">Click para revelar Media 2</span>
+                    <div class="spoiler-content">${mediaElement2}</div>
+                </div>`;
+        } else {
+            mediaHTML += `<br>${mediaElement2}`;
+        }
+    }
+
+    currentTypingInterval = typeWriterEffect(qContent, questionData.question || "(Sin texto)", mediaHTML);
+    document.getElementById('answerText').textContent = `${questionData.answer}`;
+    document.getElementById('answerText').classList.remove('show');
+    document.getElementById('modal').classList.add('active');
+
+    updateQuestionModal(questionData);
+}
+
+function showOptions() {
+    const currentData = getCurrentRoundData();
+    const { col, row } = currentQuestionLocation;
+    const questionData = currentData.questions[col][row];
+    if (!questionData.multipleChoice || usedMultipleChoice) return;
+
+    usedMultipleChoice = true;
+    const newPoints = Math.ceil(currentQuestionPoints / 2);
+
+    const optionsHtml = questionData.multipleChoice
+        .split('/')
+        .map(opt => `<p class="multiple-choice-option">${opt.trim()}</p>`)
+        .join('');
+
+    document.getElementById('multipleChoiceText').innerHTML = optionsHtml;
+    document.getElementById('multipleChoiceContainer').classList.add('show');
+    document.getElementById('btnShowOptions').style.display = 'none';
+    document.getElementById('pointValue').textContent = `$${newPoints} (-50%)`;
+
+    const playersArea = document.getElementById("playersArea");
+    playersArea.querySelectorAll('.player-add').forEach(button => {
+        const pointSpan = button.querySelector('.point-value-display');
+        if (pointSpan) pointSpan.textContent = newPoints;
+        const originalOnClick = button.getAttribute('onclick');
+        const newOnClick = originalOnClick.replace(`, false)`, `, true)`);
+        button.setAttribute('onclick', newOnClick);
+    });
+}
+
+function awardTeamPoints(teamIndex, points, col, row, usedOptions) {
+    const finalPoints = usedOptions ? Math.ceil(points / 2) : points;
+    teams[teamIndex].score += finalPoints;
 
     const currentData = getCurrentRoundData();
     currentData.questions[col][row].used = true;
@@ -439,8 +604,11 @@ document.getElementById('modal').onclick = function (e) {
 /* ================================
    ASIGNACIÓN Y DEDUCCIÓN DE PUNTOS
 ================================ */
-function awardPoints(playerIndex, points, col, row) {
-    players[playerIndex].score += points;
+
+function awardPoints(playerIndex, points, col, row, usedOptions) {
+    const finalPoints = usedOptions ? Math.ceil(points / 2) : points;
+    players[playerIndex].score += finalPoints;
+
     const currentData = getCurrentRoundData();
     currentData.questions[col][row].used = true;
 
@@ -483,6 +651,7 @@ function generateColor() {
     const colors = ["#ff7675", "#74b9ff", "#55efc4", "#ffeaa7", "#a29bfe", "#fab1a0", "#81ecec", "#fd79a8"];
     return colors[Math.floor(Math.random() * colors.length)];
 }
+
 function addPlayer() {
     Swal.fire({
         title: "Nuevo jugador",
@@ -523,6 +692,7 @@ function addPlayer() {
         }
     });
 }
+
 function editPlayerName(index) {
     Swal.fire({
         title: "Editar jugador",
@@ -741,6 +911,7 @@ function resetScores() {
         }
     });
 }
+
 function resetQuestions() {
     Swal.fire({
         icon: 'warning',
@@ -768,6 +939,7 @@ function resetQuestions() {
         }
     });
 }
+
 /* ================================
    EDITOR DE CATEGORÍAS Y PREGUNTAS
 ================================ */
@@ -778,10 +950,12 @@ function openEditor() {
     renderEditor();
     document.getElementById('editorModal').classList.add('active');
 }
+
 function closeEditor() {
     document.getElementById('editorModal').classList.remove('active');
     editingGameData = null;
 }
+
 function renderEditor() {
     const container = document.getElementById('categoriesEditor');
     container.innerHTML = '';
@@ -808,18 +982,35 @@ function renderEditor() {
                 <textarea onchange="updateQuestion(${catIndex}, ${qIndex}, 'question', this.value)">${q.question || ''}</textarea>
                 <label>Respuesta:</label>
                 <textarea onchange="updateQuestion(${catIndex}, ${qIndex}, 'answer', this.value)">${q.answer || ''}</textarea>
+                <label>Opciones Múltiple:</label>
+                <textarea onchange="updateQuestion(${catIndex}, ${qIndex}, 'multipleChoice', this.value)" placeholder="Ej: a) Opción 1 / b) Opción 2 / c) Opción 3 (Separar con barras '/')">${q.multipleChoice || ''}</textarea>
                 <div class="media-section">
-                    <label>Multimedia (Imagen/Audio/Video):</label>
-                    <input type="file" accept="image/*,video/*,audio/*" onchange="handleMediaUpload(event, ${catIndex}, ${qIndex})">
-                    ${q.media ? `
+                    <label>Multimedia 1 (Imagen/Audio/Video):</label>
+                    <input type="file" accept="image/*,video/*,audio/*" onchange="handleMediaUpload(event, ${catIndex}, ${qIndex}, 'media1')">
+                    ${q.media1 ? `
                         <div class="media-preview">
-                            ${q.media.type === 'image'
-                    ? `<img src="${q.media.url}" style="max-width:120px;">`
-                    : q.media.type === 'audio'
-                        ? `<audio src="${q.media.url}" controls style="max-width:150px;"></audio>`
-                        : `<video src="${q.media.url}" controls style="max-width:150px;"></video>`
+                            ${q.media1.type === 'image'
+                    ? `<img src="${q.media1.url}" style="max-width:120px;">`
+                    : q.media1.type === 'audio'
+                        ? `<audio src="${q.media1.url}" controls style="max-width:150px;"></audio>`
+                        : `<video src="${q.media1.url}" controls style="max-width:150px;"></video>`
                 }
-                            <button onclick="removeMedia(${catIndex}, ${qIndex})">Quitar</button>
+                            <button onclick="removeMedia(${catIndex}, ${qIndex}, 'media1')">Quitar</button>
+                        </div>` : ''
+            }
+                </div>
+                <div class="media-section">
+                    <label>Multimedia 2 (Imagen/Audio/Video):</label>
+                    <input type="file" accept="image/*,video/*,audio/*" onchange="handleMediaUpload(event, ${catIndex}, ${qIndex}, 'media2')">
+                    ${q.media2 ? `
+                        <div class="media-preview">
+                            ${q.media2.type === 'image'
+                    ? `<img src="${q.media2.url}" style="max-width:120px;">`
+                    : q.media2.type === 'audio'
+                        ? `<audio src="${q.media2.url}" controls style="max-width:150px;"></audio>`
+                        : `<video src="${q.media2.url}" controls style="max-width:150px;"></video>`
+                }
+                            <button onclick="removeMedia(${catIndex}, ${qIndex}, 'media2')">Quitar</button>
                         </div>` : ''
             }
                 </div>
@@ -837,6 +1028,7 @@ function renderEditor() {
         container.appendChild(categoryDiv);
     });
 }
+
 /* ================================
    MODIFICACIONES EN EL EDITOR
 ================================ */
@@ -844,15 +1036,18 @@ function renderEditor() {
 function updateCategory(catIndex, newName) {
     editingGameData.categories[catIndex] = newName;
 }
+
 function updateQuestion(catIndex, qIndex, field, value) {
     editingGameData.questions[catIndex][qIndex][field] =
         field === 'value' ? parseInt(value) || 0 : value;
 }
+
 function addCategory() {
     editingGameData.categories.push('Nueva Categoría');
-    editingGameData.questions.push([{ value: 100, question: '', answer: '', media: null }]);
+    editingGameData.questions.push([{ value: 100, question: '', answer: '', media1: null, media2: null, multipleChoice: '' }]);
     renderEditor();
 }
+
 function removeCategory(catIndex) {
     if (editingGameData.categories.length <= 1) {
         return Swal.fire({
@@ -889,7 +1084,9 @@ function addQuestion(catIndex) {
         value: last ? last.value + 100 : 100,
         question: '',
         answer: '',
-        media: null
+        media1: null,
+        media2: null,
+        multipleChoice: ''
     });
     renderEditor();
 }
@@ -932,94 +1129,29 @@ function saveGame() {
         return;
     }
 
-    let dataToSave = JSON.parse(JSON.stringify(editingGameData));
-    dataToSave.questions = dataToSave.questions.map(col =>
-        col.map(q => ({
-            value: Number(q.value) || 100,
-            question: q.question || "",
-            answer: q.answer || "",
-            media: q.media ? { ...q.media } : null
-        }))
-    );
+    roundsData[activeRound].categories = editingGameData.categories;
+    roundsData[activeRound].questions = editingGameData.questions;
 
-    let saveSuccessful = false;
-    let hadLargeMedia = false;
+    saveGameDataDB();
 
-    try {
-        roundsData[activeRound] = dataToSave;
-        localStorage.setItem("jeopardyRoundsData", JSON.stringify(roundsData));
-        saveSuccessful = true;
-    } catch (err) {
-        console.error('Error al guardar con multimedia. Intentando sin multimedia.', err);
-        hadLargeMedia = true;
+    closeEditor();
+    renderBoard();
 
-        roundsData[activeRound].questions.forEach(col => {
-            col.forEach(q => {
-                if (q.media) {
-                    q.media = null;
-                }
-            });
-        });
-
-        try {
-            localStorage.setItem("jeopardyRoundsData", JSON.stringify(roundsData));
-            saveSuccessful = true;
-        } catch (finalErr) {
-            console.error('Fallo final al guardar.', finalErr);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error Crítico de Guardado',
-                text: 'No se pudo guardar el juego ni siquiera sin multimedia. Tu LocalStorage está lleno.',
-                confirmButtonColor: '#e74c3c'
-            });
-            return;
-        }
-    }
-
-    if (saveSuccessful) {
-        loadGameData();
-
-        usedCells.clear();
-        renderBoard();
-        renderScoreboard();
-
-        document.getElementById('editorModal').classList.remove('active');
-        editingGameData = null;
-
-        if (hadLargeMedia) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Juego Guardado, ¡pero con advertencia!',
-                html: `El juego se guardó correctamente, pero algunas imágenes/videos eran demasiado grandes. Tuvimos que **quitar la multimedia pesada** de esta ronda para evitar que **localStorage** colapse.
-                <br><br><strong>Solución:</strong> Debes usar archivos multimedia más pequeños o usar la URL pública.`,
-                confirmButtonColor: '#f39c12'
-            });
-        } else {
-            Swal.fire({
-                icon: 'success',
-                title: 'Juego guardado',
-                text: 'Los cambios se guardaron correctamente.',
-                confirmButtonColor: '#27ae60'
-            });
-        }
-    }
+    Swal.fire({
+        icon: 'success',
+        title: '¡Guardado!',
+        text: `Los datos de la ronda "${roundsData[activeRound].name}" se han guardado exitosamente.`,
+        confirmButtonColor: '#27ae60'
+    });
 }
 
 /* ================================
    MULTIMEDIA EN EL EDITOR
 ================================ */
 
-function handleMediaUpload(event, catIndex, qIndex) {
+function handleMediaUpload(event, catIndex, qIndex, mediaSlot) {
     const file = event.target.files[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Archivo grande',
-            text: `El archivo es grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Esto podría causar problemas de guardado persistente.`,
-            confirmButtonColor: '#f39c12'
-        });
-    }
 
     const reader = new FileReader();
     reader.onload = () => {
@@ -1032,7 +1164,7 @@ function handleMediaUpload(event, catIndex, qIndex) {
             type = "image";
         }
 
-        editingGameData.questions[catIndex][qIndex].media = {
+        editingGameData.questions[catIndex][qIndex][mediaSlot] = {
             type: type,
             url: reader.result
         };
@@ -1042,7 +1174,7 @@ function handleMediaUpload(event, catIndex, qIndex) {
     reader.readAsDataURL(file);
 }
 
-function removeMedia(catIndex, qIndex) {
-    editingGameData.questions[catIndex][qIndex].media = null;
+function removeMedia(catIndex, qIndex, mediaSlot) {
+    editingGameData.questions[catIndex][qIndex][mediaSlot] = null;
     renderEditor();
 }

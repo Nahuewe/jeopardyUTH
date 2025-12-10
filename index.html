@@ -57,9 +57,16 @@
             <h2 id="categoryTitle"></h2>
             <div class="value" id="pointValue"></div>
             <div class="question" id="questionText"></div>
+
+            <div class="multiple-choice-container" id="multipleChoiceContainer">
+                <h3 style="text-align: center;">Opciones</h3>
+                <div style="text-align: center; padding: 5px; gap: 4px;" id="multipleChoiceText"></div>
+            </div>
             <div class="answer" id="answerText"></div>
 
             <div class="buttons-top">
+                <button class="btn info" style="background-color: yellow;" id="btnShowOptions"
+                    onclick="showOptions()">Ver Pistas (50%)</button>
                 <button class="btn" onclick="showAnswer()">Mostrar Respuesta</button>
                 <button class="btn danger" onclick="closeModal()">Cerrar</button>
             </div>
@@ -80,6 +87,11 @@
                 <button class="btn danger btn-cancel" onclick="closeEditor()">Cancelar</button>
             </div>
         </div>
+    </div>
+
+    <div class="editor-modal" id="questionEditorModal">
+        <div class="editor-content" id="questionEditorContent">
+            </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

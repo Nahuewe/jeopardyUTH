@@ -24,6 +24,14 @@ body {
     overflow-x: hidden;
 }
 
+textarea {
+  field-sizing: content;
+}
+
+.textarea {
+  field-sizing: content;
+}
+
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -772,4 +780,29 @@ body {
 
 .swal2-container {
     z-index: 99999 !important;
+}
+
+.multiple-choice-container {
+    padding: 10px;
+    border: 1px solid #4f545c;
+    border-radius: 6px;
+    margin-top: 15px;
+    display: none;
+    background-color: #36393f;
+    text-align: left;
+}
+
+.multiple-choice-container.show {
+    display: block;
+}
+
+.multiple-choice-options p {
+    margin: 5px 0;
+    padding: 3px 0;
+    color: #dcddde;
+    font-size: 1.1em;
+}
+
+.modal-points {
+    color: var(--warning-yellow, #f39c12);
 }
