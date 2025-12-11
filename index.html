@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="index.css">
     <link rel="icon" type="image/svg+xml" href="./porton.jpg" />
-    <link rel="icon" href="./porton.jpg" />
+    <link rel="icon" href="./images/porton.jpg" />
     <title>Jeopardy - UTH</title>
 </head>
 
@@ -15,9 +15,7 @@
         <div class="mode-controls-panel">
             <button id="modeGameBtn" class="mode-btn active" onclick="game.setMode('game')">Modo Juego</button>
             <button id="modeEditBtn" class="mode-btn" onclick="game.setMode('edit')">Modo Edición</button>
-            <!-- Botón de música -->
             <button id="musicBtn" class="mode-btn" onclick="game.toggleMusic()">🎵 Reproducir Música</button>
-            <!-- ⭐ CONTROL DE VOLUMEN ⭐ -->
             <div id="volumeContainer" style="margin-top: 10px; text-align:center; display:none;">
                 <label for="musicVolume" style="color:white; font-weight:bold;">Volumen</label><br>
                 <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.5"
@@ -27,8 +25,8 @@
 
         <div class="header">
             <div style="display: flex; text-align: center; flex-direction: column;">
-                <img style="height: 5em;" src="./jesusBailando.gif" alt="">
-                <h1>Jeopardy - UTH Edition</h1> <img src="./jesusBailando.gif" style="height: 5em;" alt="">
+                <img style="height: 5em;" src="./images/jesusBailando.gif" alt="">
+                <h1>Jeopardy - UTH Edition</h1> <img src="./images/jesusBailando.gif" style="height: 5em;" alt="">
             </div>
         </div>
 
@@ -68,8 +66,9 @@
 
             <div class="multiple-choice-container" id="multipleChoiceContainer">
                 <h3 style="text-align: center;">Opciones</h3>
-                <div style="text-align: center; padding: 5px; gap: 4px;" id="multipleChoiceText"></div>
+                <div class="multiple-choice-grid" id="multipleChoiceText"></div>
             </div>
+
             <div class="answer" id="answerText"></div>
 
             <div class="buttons-top">
@@ -105,7 +104,7 @@
         </div>
     </div>
 
-    <audio id="gameMusic" src="./Música preguntas 1 - 5 (Quien Quiere ser millonario).mp3" loop></audio>
+    <audio id="gameMusic" src="./audio/Música preguntas 1 - 5 (Quien Quiere ser millonario).mp3" loop></audio>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script type="module" src="js/main.js"></script>
 </body>

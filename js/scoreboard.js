@@ -26,6 +26,10 @@ export class Scoreboard {
             return;
         }
 
+        scorables.sort((a, b) => {
+            return a.name.localeCompare(b.name);
+        });
+
         scorables.forEach((scorable, index) => {
             const card = this.createScorableCard(scorable, index, isTeamMode);
             this.scoreboardElement.appendChild(card);
@@ -49,6 +53,12 @@ export class Scoreboard {
             ? `<p class="team-members">Miembros: ${scorable.members.join(', ')}</p>`
             : '';
 
+        const defaultAvatar = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="#7f8c8d" d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3c0 16.2 13.1 29.7 30 29.7H418c16.9 0 30-13.5 30-29.7C448 383.8 368.2 304 269.7 304H178.3z"/></svg>';
+
+        const avatarHTML = !isTeamMode && scorable.avatar
+            ? `<img src="${scorable.avatar}" alt="Avatar" class="scoreboard-avatar" style="border: 2px solid ${scorable.color};">`
+            : `<img src="${defaultAvatar}`;
+
         const editAction = isTeamMode
             ? `window.game.teamManager.edit(${index})`
             : `window.game.playerManager.edit(${index})`;
@@ -58,7 +68,10 @@ export class Scoreboard {
             : `window.game.playerManager.remove(${index})`;
 
         card.innerHTML = `
-            <h3>${scorable.name}</h3>
+            <div class="scorable-header">
+                ${avatarHTML}
+                <h3 style="margin-top:10px;">${scorable.name}</h3>
+            </div>
             ${detailsHTML}
             <div class="score">$${scorable.score}</div>
             <div class="controls">

@@ -14,7 +14,6 @@ export class QuestionModal {
         this.currentQuestionPoints = 0;
         this.currentQuestionLocation = { col: -1, row: -1 };
         this.usedMultipleChoice = false;
-
         this.setupEventListeners();
     }
 
@@ -184,22 +183,32 @@ export class QuestionModal {
             ? `window.game.pointsManager.deductTeam(${index}, ${points})`
             : `window.game.pointsManager.deductPlayer(${index}, ${points})`;
 
+        const defaultAvatar = '';
+        const avatarSrc = !isTeamMode && scorable.avatar ? scorable.avatar : defaultAvatar;
+
         return `
-            <div class="player-btn-group">
-                <button
-                    class="player-add"
-                    style="background:${scorable.color}; color:white; margin-bottom:5px;"
-                    onclick="${awardFunction}"
-                >
-                    ${scorable.name} +<span class="point-value-display">${points}</span>
-                </button>
-                <button
-                    class="player-deduct"
-                    style="background:var(--danger-red); color: white;"
-                    onclick="${deductFunction}"
-                >
-                    ${scorable.name} -${points}
-                </button>
+            <div class="player-info" style="border-top-color: ${scorable.color};">
+                <img src="${avatarSrc}" alt="Avatar de ${scorable.name}" class="player-avatar">
+
+                <span class="player-name">${scorable.name}</span>
+                <span class="player-score" style="color:limegreen;">${scorable.score}</span>
+
+                <div class="player-btn-group">
+                    <button
+                        class="player-add"
+                        style="background:${scorable.color}; color:white; margin-bottom:5px;"
+                        onclick="${awardFunction}"
+                    >
+                        + ${points}
+                    </button>
+                    <button
+                        class="player-deduct"
+                        style="background:var(--danger-red); color: white;"
+                        onclick="${deductFunction}"
+                    >
+                        - ${points}
+                    </button>
+                </div>
             </div>
         `;
     }

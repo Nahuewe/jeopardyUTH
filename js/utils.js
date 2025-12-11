@@ -70,12 +70,12 @@ export const Utils = {
     showMoneyAnimation() {
         const container = document.createElement('div');
         container.className = 'money-anim-container';
-
-        const emojis = ['💸', '💵', '🪙'];
+        const emojis = ['💸', '💵', '💰', '🤑'];
         const items = new Array(18).fill(0).map(() => {
             const left = Math.random() * 100;
             const delay = (Math.random() * 0.6).toFixed(2);
             const rotation = Math.random() * 360;
+
             const emoji = emojis[Math.floor(Math.random() * emojis.length)];
 
             return `<span class="money-anim-item" style="left:${left}%; animation-delay:${delay}s; transform: translateY(-10vh) rotate(${rotation}deg)">${emoji}</span>`;

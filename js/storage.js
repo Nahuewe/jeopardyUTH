@@ -5,8 +5,11 @@
 
 export const Storage = {
     DB_NAME: 'JeopardyDB',
-    DB_VERSION: 1,
+    DB_VERSION: 2,
     STORE_NAME: 'roundsDataStore',
+    PLAYERS_STORE_NAME: 'playersAndTeams',
+    PLAYERS_KEY: 'jeopardyPlayers',
+    TEAMS_KEY: 'jeopardyTeams',
 
     async openDB() {
         return new Promise((resolve, reject) => {
@@ -14,8 +17,13 @@ export const Storage = {
 
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
+
                 if (!db.objectStoreNames.contains(this.STORE_NAME)) {
                     db.createObjectStore(this.STORE_NAME, { keyPath: 'id' });
+                }
+
+                if (!db.objectStoreNames.contains(this.PLAYERS_STORE_NAME)) {
+                    db.createObjectStore(this.PLAYERS_STORE_NAME, { keyPath: 'id' });
                 }
             };
 
@@ -26,6 +34,8 @@ export const Storage = {
             };
         });
     },
+
+    // --- MÉTODOS DE DATOS DEL JUEGO ---
 
     async saveGameData(roundsData) {
         try {
@@ -68,21 +78,89 @@ export const Storage = {
         }
     },
 
-    savePlayers(players) {
-        localStorage.setItem("jeopardyPlayers", JSON.stringify(players));
+    // --- MÉTODOS DE JUGADORES ---
+
+    async savePlayers(players) {
+        try {
+            const db = await this.openDB();
+            const transaction = db.transaction([this.PLAYERS_STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(this.PLAYERS_STORE_NAME);
+
+            store.put({ id: this.PLAYERS_KEY, data: players });
+
+            await new Promise((resolve, reject) => {
+                transaction.oncomplete = resolve;
+                transaction.onerror = reject;
+            });
+            console.log("Jugadores guardados en IndexedDB.");
+        } catch (error) {
+            console.error("Error al guardar jugadores en IndexedDB:", error);
+        }
     },
 
-    loadPlayers() {
-        const saved = localStorage.getItem("jeopardyPlayers");
-        return saved ? JSON.parse(saved) : [];
+    async loadPlayers() {
+        try {
+            const db = await this.openDB();
+            const transaction = db.transaction([this.PLAYERS_STORE_NAME], 'readonly');
+            const store = transaction.objectStore(this.PLAYERS_STORE_NAME);
+            const request = store.get(this.PLAYERS_KEY);
+
+            return new Promise((resolve) => {
+                request.onsuccess = (event) => {
+                    const result = event.target.result;
+                    resolve(result ? result.data : []);
+                };
+                request.onerror = () => {
+                    console.warn("No se pudieron cargar los jugadores. Usando lista vacía.");
+                    resolve([]);
+                };
+            });
+        } catch (error) {
+            console.error("Error de conexión al cargar jugadores:", error);
+            return [];
+        }
     },
 
-    saveTeams(teams) {
-        localStorage.setItem("jeopardyTeams", JSON.stringify(teams));
+    // --- MÉTODOS DE EQUIPOS ---
+
+    async saveTeams(teams) {
+        try {
+            const db = await this.openDB();
+            const transaction = db.transaction([this.PLAYERS_STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(this.PLAYERS_STORE_NAME);
+
+            store.put({ id: this.TEAMS_KEY, data: teams });
+
+            await new Promise((resolve, reject) => {
+                transaction.oncomplete = resolve;
+                transaction.onerror = reject;
+            });
+            console.log("Equipos guardados en IndexedDB.");
+        } catch (error) {
+            console.error("Error al guardar equipos en IndexedDB:", error);
+        }
     },
 
-    loadTeams() {
-        const saved = localStorage.getItem("jeopardyTeams");
-        return saved ? JSON.parse(saved) : [];
+    async loadTeams() {
+        try {
+            const db = await this.openDB();
+            const transaction = db.transaction([this.PLAYERS_STORE_NAME], 'readonly');
+            const store = transaction.objectStore(this.PLAYERS_STORE_NAME);
+            const request = store.get(this.TEAMS_KEY);
+
+            return new Promise((resolve) => {
+                request.onsuccess = (event) => {
+                    const result = event.target.result;
+                    resolve(result ? result.data : []);
+                };
+                request.onerror = () => {
+                    console.warn("No se pudieron cargar los equipos. Usando lista vacía.");
+                    resolve([]);
+                };
+            });
+        } catch (error) {
+            console.error("Error de conexión al cargar equipos:", error);
+            return [];
+        }
     }
 };

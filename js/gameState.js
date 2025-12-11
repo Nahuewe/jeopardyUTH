@@ -72,8 +72,6 @@ export class GameState {
             audio.volume = 0.35;
             audio.play();
             btn.textContent = "⏸️ Pausar Música";
-
-            // Mostrar volumen
             if (volumeContainer) {
                 volumeContainer.style.display = "block";
             }
@@ -82,7 +80,6 @@ export class GameState {
             audio.pause();
             btn.textContent = "🎵 Reproducir Música";
 
-            // Ocultar volumen
             if (volumeContainer) {
                 volumeContainer.style.display = "none";
             }

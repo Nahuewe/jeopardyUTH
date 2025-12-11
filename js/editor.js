@@ -153,16 +153,16 @@ export class Editor {
         <textarea id="final_multipleChoice"  placeholder="Ej: A / B / C (separar con /)">${fq.multipleChoice || ''}</textarea>
 
         <div class="media-section">
-            <label>Multimedia 1:</label>
-            <input type="file" id="final_media1" accept="image/*,video/*,audio/*">
+            <label style="margin-left:5px;">Multimedia 1:</label>
+            <input style="margin-left:5px;" type="file" id="final_media1" accept="image/*,video/*,audio/*">
             <div id="final_media1_preview">
                 ${fq.media1 ? this.createMediaPreview(fq.media1, -1, 0, 'media1') : ''}
             </div>
         </div>
 
         <div class="media-section">
-            <label>Multimedia 2:</label>
-            <input type="file" id="final_media2" accept="image/*,video/*,audio/*">
+            <label style="margin-left:5px;">Multimedia 2:</label>
+            <input style="margin-left:5px;" type="file" id="final_media2" accept="image/*,video/*,audio/*">
             <div id="final_media2_preview">
                 ${fq.media2 ? this.createMediaPreview(fq.media2, -1, 0, 'media2') : ''}
             </div>
@@ -192,7 +192,6 @@ export class Editor {
         </div>
     `;
     }
-
 
     updateCategory(catIndex, newName) {
         this.gameState.editingGameData.categories[catIndex] = newName;

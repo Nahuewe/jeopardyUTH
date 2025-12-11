@@ -74,7 +74,7 @@ export class Board {
 
         const finalWrapper = document.createElement('div');
         finalWrapper.id = 'finalQuestionWide';
-        finalWrapper.className = 'final-question-wide';
+        finalWrapper.className = 'final-question-wide' + (finalQuestion.used ? ' used' : '');
         finalWrapper.style.border = `3px dashed ${this.gameState.activeRound === 'individual' ? 'var(--accent)' : '#ffd700'}`;
 
         const questionPreview = finalQuestion.question
@@ -98,6 +98,7 @@ export class Board {
     renderFinalQuestionTile() {
         const gameContainer = document.getElementById("gameModeContainer");
         let finalTile = document.getElementById("finalQuestionTile");
+        const finalQuestion = this.gameState.getCurrentRoundData().finalQuestion || { value: 0 };
 
         if (!finalTile) {
             finalTile = document.createElement("div");
@@ -107,7 +108,8 @@ export class Board {
             gameContainer.appendChild(finalTile);
         }
 
-        const finalQuestion = this.gameState.getCurrentRoundData().finalQuestion || { value: 0 };
+        finalTile.className = "final-question-tile" + (finalQuestion.used ? ' used' : '');
+        finalTile.onclick = finalQuestion.used ? null : () => this.questionModal.openFinal();
 
         finalTile.innerHTML = `
             <div class="final-title">PREGUNTA FINAL</div>

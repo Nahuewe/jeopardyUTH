@@ -22,23 +22,20 @@ class JeopardyGame {
     }
 
     initializeComponents() {
-        // Orden de inicialización es importante debido a dependencias
-        this.board = new Board(this.state, null); // QuestionModal se asigna después
-        this.scoreboard = new Scoreboard(this.state, null, null); // Managers se asignan después
+        this.board = new Board(this.state, null);
+        this.scoreboard = new Scoreboard(this.state, null, null);
         this.pointsManager = new PointsManager(this.state, this.board, this.scoreboard);
         this.questionModal = new QuestionModal(this.state, this.pointsManager);
         this.playerManager = new PlayerManager(this.state, this.scoreboard);
         this.teamManager = new TeamManager(this.state, this.scoreboard);
         this.editor = new Editor(this.state, this.board);
 
-        // Asignar referencias faltantes
         this.board.questionModal = this.questionModal;
         this.scoreboard.playerManager = this.playerManager;
         this.scoreboard.teamManager = this.teamManager;
     }
 
     setupGlobalReferences() {
-        // Exponer el juego globalmente para que los event handlers en HTML puedan acceder
         window.game = this;
     }
 
@@ -49,12 +46,10 @@ class JeopardyGame {
     }
 
     async loadData() {
-        // Cargar datos del juego
         const savedRoundsData = await Storage.loadGameData();
         if (savedRoundsData) {
             this.state.roundsData = savedRoundsData;
 
-            // Asegurar estructura correcta
             if (!this.state.roundsData.individual) {
                 this.state.roundsData.individual = {
                     categories: [],
@@ -74,57 +69,46 @@ class JeopardyGame {
             }
         }
 
-        // Cargar jugadores
-        this.state.players = Storage.loadPlayers();
+        this.state.players = await Storage.loadPlayers();
         this.state.players.forEach(player => {
             if (!player.color) player.color = Utils.generateColor();
         });
 
-        // Cargar equipos
-        this.state.teams = Storage.loadTeams();
+        this.state.teams = await Storage.loadTeams();
     }
 
-setupEventListeners() {
-    // Botones de modo
-    document.getElementById('modeGameBtn').onclick = () => this.setMode('game');
-    document.getElementById('modeEditBtn').onclick = () => this.setMode('edit');
+    setupEventListeners() {
+        document.getElementById('modeGameBtn').onclick = () => this.setMode('game');
+        document.getElementById('modeEditBtn').onclick = () => this.setMode('edit');
+        const mainBtn = document.getElementById("mainActionsBtn");
+        const menu = document.getElementById("mainActionsMenu");
 
-    // Menú desplegable
-    const mainBtn = document.getElementById("mainActionsBtn");
-    const menu = document.getElementById("mainActionsMenu");
+        if (mainBtn && menu) {
+            mainBtn.onclick = () => menu.classList.toggle("open");
 
-    if (mainBtn && menu) {
-        mainBtn.onclick = () => menu.classList.toggle("open");
+            document.addEventListener("click", (e) => {
+                const dropdown = document.getElementById("actionsDropdown");
+                if (dropdown && !dropdown.contains(e.target)) {
+                    menu.classList.remove("open");
+                }
+            });
+        }
 
-        document.addEventListener("click", (e) => {
-            const dropdown = document.getElementById("actionsDropdown");
-            if (dropdown && !dropdown.contains(e.target)) {
-                menu.classList.remove("open");
-            }
-        });
-    }
+        const showAnswerBtn = document.getElementById('showAnswerBtn');
+        if (showAnswerBtn) {
+            showAnswerBtn.onclick = () => this.questionModal.showAnswer();
+        }
 
-    // Botón para mostrar respuesta en modal
-    const showAnswerBtn = document.getElementById('showAnswerBtn');
-    if (showAnswerBtn) {
-        showAnswerBtn.onclick = () => this.questionModal.showAnswer();
-    }
+        const volumeSlider = document.getElementById("musicVolume");
+        const audio = document.getElementById("gameMusic");
 
-    // ⭐ CONTROL DE VOLUMEN ⭐
-    const volumeSlider = document.getElementById("musicVolume");
-    const audio = document.getElementById("gameMusic");
-
-    if (volumeSlider && audio) {
-        // Volumen inicial
-        audio.volume = parseFloat(volumeSlider.value);
-
-        // Cambios de volumen en tiempo real
-        volumeSlider.addEventListener("input", () => {
+        if (volumeSlider && audio) {
             audio.volume = parseFloat(volumeSlider.value);
-        });
+            volumeSlider.addEventListener("input", () => {
+                audio.volume = parseFloat(volumeSlider.value);
+            });
+        }
     }
-}
-
 
     setMode(mode) {
         this.state.setMode(mode);
@@ -197,7 +181,6 @@ setupEventListeners() {
     }
 }
 
-// Inicializar la aplicación cuando el DOM esté listo
 document.addEventListener("DOMContentLoaded", async () => {
     const game = new JeopardyGame();
     await game.initialize();

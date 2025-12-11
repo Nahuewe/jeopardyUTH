@@ -105,7 +105,6 @@ export class PointsManager {
         this.board.render();
         this.board.renderFinalQuestionTile();
 
-        // Cerrar modal
         document.getElementById('modal').classList.remove('active');
     }
 
