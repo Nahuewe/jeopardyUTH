@@ -720,7 +720,15 @@ textarea,
    MODAL DE PREGUNTA
 ================================ */
 
+/* ================================
+   MODAL CONTENT - AJUSTE PARA SCROLL
+================================ */
 .modal-content {
+    display: flex;
+    gap: 25px;
+    align-items: stretch;
+    /* Vuelve a stretch para altura completa */
+    height: 100%;
     background: var(--bg-secondary);
     margin: auto;
     padding: clamp(15px, 3vw, 30px);
@@ -796,6 +804,208 @@ textarea,
 
     50% {
         box-shadow: 0 0 25px rgba(250, 166, 26, 0.6);
+    }
+}
+
+/* ================================
+   PRESENTADORA EN MODAL - FULL HEIGHT
+================================ */
+
+.presenter-container {
+    flex: 0 0 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100%;
+    align-self: stretch;
+    position: sticky;
+    top: 0;
+    background: linear-gradient(145deg,
+            rgba(147, 51, 234, 0.12) 0%,
+            rgba(79, 70, 229, 0.08) 50%,
+            rgba(236, 72, 153, 0.12) 100%);
+    border-radius: 25px;
+    padding: 30px;
+    overflow: hidden;
+    border: 2px solid rgba(147, 51, 234, 0.2);
+    box-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    z-index: 10;
+}
+
+.presenter-container::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center,
+            rgba(147, 51, 234, 0.2) 0%,
+            transparent 60%);
+    animation: gentlePulse 6s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes gentlePulse {
+
+    0%,
+    100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 0.4;
+    }
+
+    50% {
+        transform: scale(1.15) rotate(180deg);
+        opacity: 0.7;
+    }
+}
+
+.presenter-container::after {
+    content: '';
+    position: absolute;
+    inset: 15px;
+    border-radius: 20px;
+    background: linear-gradient(45deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.03) 50%,
+            transparent 100%);
+    animation: shimmer 3s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes shimmer {
+    0% {
+        opacity: 0;
+        transform: translateX(-100%);
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+.presenter-img {
+    width: 100%;
+    max-width: 380px;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 20px;
+    position: relative;
+    z-index: 1;
+    background: linear-gradient(180deg,
+            rgba(255, 255, 255, 0.98) 0%,
+            rgba(255, 255, 255, 1) 100%);
+    padding: 15px;
+    border: 3px solid rgba(147, 51, 234, 0.3);
+    box-shadow:
+        0 25px 60px rgba(0, 0, 0, 0.4),
+        0 0 50px rgba(147, 51, 234, 0.3),
+        inset 0 2px 10px rgba(255, 255, 255, 0.5),
+        inset 0 -2px 10px rgba(147, 51, 234, 0.1);
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    filter: drop-shadow(0 10px 30px rgba(147, 51, 234, 0.2));
+}
+
+.presenter-img:hover {
+    transform: scale(1.05) translateY(-8px) rotate(1deg);
+    border-color: rgba(236, 72, 153, 0.5);
+    box-shadow:
+        0 35px 80px rgba(0, 0, 0, 0.5),
+        0 0 70px rgba(236, 72, 153, 0.5),
+        inset 0 2px 15px rgba(255, 255, 255, 0.6),
+        inset 0 -2px 15px rgba(236, 72, 153, 0.2);
+    filter:
+        drop-shadow(0 15px 40px rgba(236, 72, 153, 0.4)) brightness(1.05);
+}
+
+@keyframes slideInPresenter {
+    from {
+        opacity: 0;
+        transform: translateX(-50px) scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+.presenter-img {
+    animation: slideInPresenter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ================================
+   MODAL MAIN - CON SCROLL
+================================ */
+
+.modal-main {
+    flex: 1;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: relative;
+    overflow: visible;
+}
+
+/* ================================
+   RESPONSIVE
+================================ */
+
+@media (max-width: 1200px) {
+    .presenter-container {
+        flex: 0 0 350px;
+        padding: 25px;
+    }
+
+    .presenter-img {
+        max-width: 320px;
+    }
+}
+
+@media (max-width: 968px) {
+    .modal-content {
+        flex-direction: column !important;
+        gap: 25px;
+    }
+
+    .presenter-container {
+        position: relative;
+        flex: 0 0 auto;
+        min-height: auto;
+        max-height: 420px;
+        width: 100%;
+        padding: 20px;
+    }
+
+    .presenter-img {
+        height: auto;
+        max-height: 380px;
+        max-width: 100%;
+        width: auto;
+    }
+}
+
+@media (max-width: 640px) {
+    .presenter-container {
+        max-height: 350px;
+        padding: 15px;
+        border-radius: 20px;
+    }
+
+    .presenter-img {
+        max-height: 320px;
+        padding: 10px;
+        border-radius: 15px;
     }
 }
 
@@ -1638,6 +1848,7 @@ textarea,
 ================================ */
 
 @media (max-height: 600px) and (orientation: landscape) {
+
     .modal-content,
     .editor-content {
         max-height: 85vh;
@@ -1651,5 +1862,101 @@ textarea,
 
     .header h1 {
         font-size: 2rem;
+    }
+}
+
+/* ================================
+   INTRO DE LA APLICACIÓN
+================================ */
+
+#introScreen {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 9999;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.intro-title {
+    font-size: 4rem;
+    color: white;
+    text-shadow: 3px 3px 0px black;
+    opacity: 0;
+    animation: fadeInTitle 2s 1s forwards;
+    position: relative;
+    z-index: 10;
+}
+
+.curtain {
+    position: absolute;
+    width: 50%;
+    height: 100%;
+    top: 0;
+    background: linear-gradient(to right,
+            #b62a17 0%,
+            #b62a17 6%,
+            #6d0019 10%,
+            #b62a17 14%,
+            #b62a17 20%,
+            #6d0019 24%,
+            #b62a17 28%,
+            #b62a17 34%,
+            #6d0019 38%,
+            #b62a17 42%,
+            #b62a17 48%,
+            #6d0019 52%,
+            #b62a17 56%,
+            #b62a17 62%,
+            #6d0019 66%,
+            #b62a17 70%,
+            #b62a17 76%,
+            #6d0019 80%,
+            #b62a17 84%,
+            #b62a17 90%,
+            #6d0019 94%,
+            #b62a17 98%);
+}
+
+.curtain-left {
+    left: 0;
+    animation: openLeft 3s 1.5s forwards;
+}
+
+.curtain-right {
+    right: 0;
+    animation: openRight 3s 1.5s forwards;
+}
+
+@keyframes openLeft {
+    100% {
+        transform: translateX(-100%);
+    }
+}
+
+@keyframes openRight {
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+@keyframes fadeInTitle {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes hideIntro {
+    100% {
+        opacity: 0;
+        pointer-events: none;
     }
 }

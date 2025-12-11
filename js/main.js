@@ -184,4 +184,11 @@ class JeopardyGame {
 document.addEventListener("DOMContentLoaded", async () => {
     const game = new JeopardyGame();
     await game.initialize();
+    const intro = document.getElementById("introScreen");
+
+    if (intro) {
+        setTimeout(() => {
+            intro.style.animation = "hideIntro 1s forwards";
+        }, 4000);
+    }
 });

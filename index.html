@@ -5,12 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="index.css">
-    <link rel="icon" type="image/svg+xml" href="./porton.jpg" />
+    <link rel="icon" type="image/svg+xml" href="./images/porton.jpg" />
     <link rel="icon" href="./images/porton.jpg" />
     <title>Jeopardy - UTH</title>
 </head>
 
 <body>
+    <div id="introScreen">
+        <div class="curtain curtain-left"></div>
+        <div class="curtain curtain-right"></div>
+        <h1 class="intro-title">¡Bienvenidos a Jeopardy UTH!</h1>
+    </div>
+
     <div class="container">
         <div class="mode-controls-panel">
             <button id="modeGameBtn" class="mode-btn active" onclick="game.setMode('game')">Modo Juego</button>
@@ -26,7 +32,7 @@
         <div class="header">
             <div style="display: flex; text-align: center; flex-direction: column;">
                 <img style="height: 5em;" src="./images/jesusBailando.gif" alt="">
-                <h1>Jeopardy - UTH Edition</h1> <img src="./images/jesusBailando.gif" style="height: 5em;" alt="">
+                <h1>Concursillo - UTH Edition</h1> <img src="./images/jesusBailando.gif" style="height: 5em;" alt="">
             </div>
         </div>
 
@@ -60,27 +66,34 @@
 
     <div class="modal" id="modal">
         <div class="modal-content">
-            <h2 id="categoryTitle"></h2>
-            <div class="value" id="pointValue"></div>
-            <div class="question" id="questionText"></div>
 
-            <div class="multiple-choice-container" id="multipleChoiceContainer">
-                <h3 style="text-align: center;">Opciones</h3>
-                <div class="multiple-choice-grid" id="multipleChoiceText"></div>
+            <div class="presenter-container">
+                <img src="./images/presentadora.png" alt="Presentadora" class="presenter-img">
             </div>
 
-            <div class="answer" id="answerText"></div>
+            <div class="modal-main">
+                <h2 id="categoryTitle"></h2>
+                <div class="value" id="pointValue"></div>
+                <div class="question" id="questionText"></div>
 
-            <div class="buttons-top">
-                <button class="btn info" style="background-color: yellow;" id="btnShowOptions"
-                    onclick="game.questionModal.showOptions()">Ver Pistas (50%)</button>
+                <div class="multiple-choice-container" id="multipleChoiceContainer">
+                    <h3 style="text-align: center;">Opciones</h3>
+                    <div class="multiple-choice-grid" id="multipleChoiceText"></div>
+                </div>
 
-                <button class="btn" onclick="game.questionModal.showAnswer()">Mostrar Respuesta</button>
+                <div class="answer" id="answerText"></div>
 
-                <button class="btn danger" onclick="game.questionModal.close()">Cerrar</button>
+                <div class="buttons-top">
+                    <button class="btn info" style="background-color: yellow;" id="btnShowOptions"
+                        onclick="game.questionModal.showOptions()">Ver Pistas (50%)</button>
+
+                    <button class="btn" onclick="game.questionModal.showAnswer()">Mostrar Respuesta</button>
+
+                    <button class="btn danger" onclick="game.questionModal.close()">Cerrar</button>
+                </div>
+
+                <div class="players-area" id="playersArea"></div>
             </div>
-
-            <div class="players-area" id="playersArea"></div>
         </div>
     </div>
 
