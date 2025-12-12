@@ -39,6 +39,11 @@ export const Utils = {
         this.showMoneyAnimation();
     },
 
+    playDeductionEffects() {
+        this.playDeductionSound();
+        this.showBadAnimation();
+    },
+
     playWinSound() {
         try {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -67,10 +72,61 @@ export const Utils = {
         }
     },
 
+    playDeductionSound() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const now = ctx.currentTime;
+            const duration = 0.1;
+            const frequencies = [330, 294, 262];
+
+            frequencies.forEach((freq, i) => {
+                const oscillator = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                oscillator.type = 'triangle';
+                oscillator.frequency.setValueAtTime(freq, now + i * duration);
+
+                gain.gain.setValueAtTime(0, now + i * duration);
+                gain.gain.linearRampToValueAtTime(0.15, now + i * duration + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * duration);
+
+                oscillator.connect(gain);
+                gain.connect(ctx.destination);
+                oscillator.start(now + i * duration);
+                oscillator.stop(now + (i + 1) * duration);
+            });
+        } catch (e) {
+            console.warn("WebAudio no pudo iniciarse:", e);
+        }
+    },
+
     showMoneyAnimation() {
         const container = document.createElement('div');
         container.className = 'money-anim-container';
         const emojis = ['💸', '💵', '💰', '🤑'];
+        const items = new Array(18).fill(0).map(() => {
+            const left = Math.random() * 100;
+            const delay = (Math.random() * 0.6).toFixed(2);
+            const rotation = Math.random() * 360;
+
+            const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+            return `<span class="money-anim-item" style="left:${left}%; animation-delay:${delay}s; transform: translateY(-10vh) rotate(${rotation}deg)">${emoji}</span>`;
+        }).join('');
+
+        container.innerHTML = items;
+        document.body.appendChild(container);
+
+        setTimeout(() => {
+            container.classList.add('fade-out');
+            setTimeout(() => container.remove(), 600);
+        }, 2500);
+    },
+
+    showBadAnimation() {
+        const container = document.createElement('div');
+        container.className = 'money-anim-container';
+        const emojis = ['❌', '🗑️', '📉', '🤕', '🔥', '💀'];
         const items = new Array(18).fill(0).map(() => {
             const left = Math.random() * 100;
             const delay = (Math.random() * 0.6).toFixed(2);

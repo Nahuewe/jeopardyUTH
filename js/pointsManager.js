@@ -19,6 +19,8 @@ export class PointsManager {
 
         this.markQuestionAsUsed(col, row, usedOptions);
         this.completeAward();
+        window.game.questionModal.showCorrectAnimation();
+
     }
 
     deductPlayer(playerIndex, points) {
@@ -36,7 +38,9 @@ export class PointsManager {
             if (result.isConfirmed) {
                 player.score -= points;
                 Storage.savePlayers(this.gameState.players);
+                window.game.questionModal.showIncorrectAnimation();
                 this.scoreboard.render();
+                Utils.playDeductionEffects();
 
                 Swal.fire({
                     icon: 'success',
@@ -72,7 +76,9 @@ export class PointsManager {
             if (result.isConfirmed) {
                 team.score -= points;
                 Storage.saveTeams(this.gameState.teams);
+                window.game.questionModal.showIncorrectAnimation();
                 this.scoreboard.render();
+                Utils.playDeductionEffects();
 
                 Swal.fire({
                     icon: 'success',
@@ -104,8 +110,6 @@ export class PointsManager {
         Storage.saveGameData(this.gameState.roundsData);
         this.board.render();
         this.board.renderFinalQuestionTile();
-
-        document.getElementById('modal').classList.remove('active');
     }
 
     resetScores() {

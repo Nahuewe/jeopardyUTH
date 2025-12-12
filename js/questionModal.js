@@ -14,7 +14,21 @@ export class QuestionModal {
         this.currentQuestionPoints = 0;
         this.currentQuestionLocation = { col: -1, row: -1 };
         this.usedMultipleChoice = false;
+
         this.setupEventListeners();
+
+        // Imagen principal del modal
+        this.presenterImg = document.querySelector('.presenter-img');
+
+        // Imágenes que deben rotar
+        this.presenterImages = [
+            "./images/leyendo.png",
+            "./images/tirarCarta.png",
+            "./images/presentando.png"
+        ];
+
+        this.currentPresenterIndex = 0;
+        this.rotationInterval = null;
     }
 
     setupEventListeners() {
@@ -23,6 +37,29 @@ export class QuestionModal {
         };
 
         document.getElementById('btnShowOptions').onclick = () => this.showOptions();
+    }
+
+    stopPresenterRotation() {
+        if (this.rotationInterval) {
+            clearInterval(this.rotationInterval);
+            this.rotationInterval = null;
+        }
+    }
+
+    startPresenterRotation() {
+        if (!this.presenterImg) return;
+
+        this.stopPresenterRotation();
+
+        this.currentPresenterIndex = 0;
+        this.presenterImg.src = this.presenterImages[this.currentPresenterIndex];
+
+        this.rotationInterval = setInterval(() => {
+            this.currentPresenterIndex =
+                (this.currentPresenterIndex + 1) % this.presenterImages.length;
+
+            this.presenterImg.src = this.presenterImages[this.currentPresenterIndex];
+        }, 4000);
     }
 
     open(col, row) {
@@ -43,6 +80,7 @@ export class QuestionModal {
 
         this.updatePlayersArea();
         this.modalElement.classList.add('active');
+        this.startPresenterRotation();
     }
 
     openFinal() {
@@ -63,6 +101,7 @@ export class QuestionModal {
 
         this.updatePlayersArea();
         this.modalElement.classList.add('active');
+        this.startPresenterRotation();
     }
 
     displayQuestion(categoryTitle, pointValue, questionData) {
@@ -213,7 +252,7 @@ export class QuestionModal {
         `;
     }
 
-    showAnswer() {
+   showAnswer() {
         document.getElementById('answerText').classList.add('show');
     }
 
@@ -229,5 +268,28 @@ export class QuestionModal {
             el.pause();
             el.currentTime = 0;
         });
+
+        this.stopPresenterRotation();
+    }
+
+    showCorrectAnimation() {
+        if (!this.presenterImg) return;
+        this.stopPresenterRotation();
+        this.presenterImg.src = "./images/correcto.png";
+
+        setTimeout(() => {
+            this.close();
+        }, 4000);
+    }
+
+    showIncorrectAnimation() {
+        if (!this.presenterImg) return;
+
+        this.presenterImg.src = "./images/incorrecto.png";
+        this.stopPresenterRotation();
+
+        setTimeout(() => {
+            this.startPresenterRotation();
+        }, 5000);
     }
 }
