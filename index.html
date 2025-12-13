@@ -11,18 +11,18 @@
 </head>
 
 <body>
-    <!-- <div id="introScreen">
+    <div id="introScreen">
         <div class="curtain curtain-left"></div>
         <div class="curtain curtain-right"></div>
         <h1 class="intro-title">¡Bienvenidos a Jeopardy UTH!</h1>
-    </div> -->
+    </div>
 
     <div class="container">
         <div class="mode-controls-panel">
             <button id="modeGameBtn" class="mode-btn active" onclick="game.setMode('game')">Modo Juego</button>
             <button id="modeEditBtn" class="mode-btn" onclick="game.setMode('edit')">Modo Edición</button>
             <button id="musicBtn" class="mode-btn" onclick="game.toggleMusic()">🎵 Reproducir Música</button>
-            <div id="volumeContainer" style="margin-top: 10px; text-align:center; display:none;">
+            <div id="volumeContainer" style="margi       n-top: 10px; text-align:center; display:none;">
                 <label for="musicVolume" style="color:white; font-weight:bold;">Volumen</label><br>
                 <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.5"
                     style="width:150px; cursor:pointer;">
