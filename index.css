@@ -1051,6 +1051,115 @@ textarea,
 }
 
 /* ================================
+   ROULETTE
+================================ */
+
+.roulette-container {
+    margin: 20px auto;
+    text-align: center;
+}
+
+.roulette-wheel {
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    border: 6px solid #fff;
+    margin: 0 auto 10px;
+    position: relative;
+
+    transition: transform 6s ease-out; /* ⬅ más tiempo, sin rebote */
+    background: #2c2f33;
+}
+
+.roulette-label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform-origin: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+    pointer-events: none;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+    transform-origin: 0 50%;
+}
+
+.roulette-slice {
+    position: absolute;
+    width: 50%;
+    height: 50%;
+    transform-origin: 100% 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.roulette-pointer {
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-top: 20px solid red;
+    margin: 0 auto 10px;
+}
+
+.roulette-pointer {
+    animation: pointerIdle 1.2s ease-in-out infinite;
+}
+
+.roulette-pointer.hit {
+    animation: pointerHit 0.25s ease-out;
+}
+
+@keyframes pointerIdle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+@keyframes pointerHit {
+    0% { transform: rotate(0deg); }
+    50% { transform: rotate(-18deg); }
+    100% { transform: rotate(0deg); }
+}
+
+
+.roulette-btn {
+    padding: 10px 18px;
+    margin-top: 10px;
+    font-weight: bold;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    background: var(--accent-blue);
+    color: white;
+}
+
+.roulette-wrapper.hidden {
+    display: none;
+}
+
+.roulette-wrapper {
+    margin-top: 15px;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ================================
    OPCIONES MÚLTIPLES
 ================================ */
 

@@ -96,9 +96,26 @@
                     <button class="btn info" style="background-color: yellow;" id="btnShowOptions"
                         onclick="game.questionModal.showOptions()">Ver Pistas (50%)</button>
 
-                    <button class="btn" onclick="game.questionModal.showAnswer()">Mostrar Respuesta</button>
+                    <button class="btn" onclick="game.questionModal.showAnswer()">
+                        Mostrar Respuesta
+                    </button>
+
+                    <button class="btn" style="background-color: blue; color: white;"
+                        onclick="game.questionModal.toggleRoulette()" id="toggleRouletteBtn">
+                        Mostrar Ruleta
+                    </button>
 
                     <button class="btn danger" onclick="game.questionModal.close()">Cerrar</button>
+                </div>
+
+                <div id="rouletteWrapper" class="roulette-wrapper hidden">
+                    <div class="roulette-container">
+                        <div class="roulette-pointer"></div>
+                        <div class="roulette-wheel" id="rouletteWheel"></div>
+                        <button class="roulette-btn" id="spinRouletteBtn">
+                            Elegir quién juega
+                        </button>
+                    </div>
                 </div>
 
                 <div class="players-area" id="playersArea"></div>
@@ -130,6 +147,7 @@
         </div>
     </div>
 
+    <audio id="rouletteTick" src="./sounds/tick.mp3" preload="auto"></audio>
     <audio id="gameMusic" src="./audio/Música preguntas 1 - 5 (Quien Quiere ser millonario).mp3" loop></audio>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script type="module" src="js/main.js"></script>
