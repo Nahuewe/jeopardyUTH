@@ -39,6 +39,8 @@ export class QuestionModal {
         const wrapper = document.getElementById("rouletteWrapper");
         const btn = document.getElementById("toggleRouletteBtn");
 
+        if (!wrapper || !btn) return;
+
         const isHidden = wrapper.classList.contains("hidden");
 
         wrapper.classList.toggle("hidden");
@@ -53,7 +55,11 @@ export class QuestionModal {
             if (e.target === this.modalElement) this.close();
         };
 
-        document.getElementById('btnShowOptions').onclick = () => this.showOptions();
+        const btnOptions = document.getElementById('btnShowOptions');
+
+        if (btnOptions) {
+            btnOptions.onclick = () => this.showOptions();
+        }
     }
 
     stopPresenterRotation() {
@@ -130,52 +136,50 @@ export class QuestionModal {
         const randomAngle = Math.random() * 360;
 
         this.rouletteAngle += spins * 360 + randomAngle;
+
+        // 🔥 Reproducir audio completo solo una vez
+        if (this.tickAudio) {
+            this.tickAudio.currentTime = 0;
+            this.tickAudio.play().catch(() => { });
+        }
+
+        wheel.style.transition = `transform 10s cubic-bezier(0.33, 1, 0.68, 1)`;
         wheel.style.transform = `rotate(${this.rouletteAngle}deg)`;
 
         this.lastTickIndex = null;
 
+        // Detectar tick visual (opcional) sin reiniciar audio
         const tickInterval = setInterval(() => {
-            const currentAngle =
-                (this.rouletteAngle -
-                    (wheel.getBoundingClientRect().width)) % 360;
-
-            const normalized =
-                (270 - currentAngle + 360) % 360;
-
-            const index =
-                Math.floor(normalized / sliceAngle) % scorables.length;
+            const currentAngle = (this.rouletteAngle - (wheel.getBoundingClientRect().width)) % 360;
+            const normalized = (270 - currentAngle + 360) % 360;
+            const index = Math.floor(normalized / sliceAngle) % scorables.length;
 
             if (index !== this.lastTickIndex) {
                 this.lastTickIndex = index;
-                this.tickAudio.currentTime = 0;
-                this.tickAudio.play();
+                const pointer = document.querySelector(".roulette-pointer");
+                pointer.classList.remove("hit");
+                void pointer.offsetWidth;
+                pointer.classList.add("hit");
             }
-        }, 60);
+        }, 300);
 
         setTimeout(() => {
             clearInterval(tickInterval);
-            const pointer = document.querySelector(".roulette-pointer");
-            pointer.classList.remove("hit");
-            void pointer.offsetWidth;
-            pointer.classList.add("hit");
             const finalAngle = (this.rouletteAngle % 360 + 360) % 360;
             const pointerAngle = (270 - finalAngle + 360) % 360;
+            const selectedIndex = Math.floor(pointerAngle / sliceAngle) % scorables.length;
 
-            const selectedIndex =
-                Math.floor(pointerAngle / sliceAngle) % scorables.length;
-
-            const selected = scorables[selectedIndex];
             this.selectedScorableIndex = selectedIndex;
-
             this.highlightWinner(selectedIndex);
 
+            const selected = scorables[selectedIndex];
             Swal.fire({
                 icon: "success",
                 title: "¡Le toca jugar!",
                 text: selected.name,
                 confirmButtonColor: selected.color
             });
-        }, 6000);
+        }, 8500);
     }
 
     highlightWinner(index) {
@@ -296,6 +300,15 @@ export class QuestionModal {
         if (!questionData.multipleChoice || this.usedMultipleChoice) return;
 
         this.usedMultipleChoice = true;
+
+        // 🔥 👉 RESTAR 50% DE PUNTOS
+        this.currentQuestionPoints = Math.floor(this.currentQuestionPoints / 2);
+
+        // 🔥 👉 ACTUALIZAR UI
+        document.getElementById('pointValue').textContent = `$${this.currentQuestionPoints}`;
+
+        // 🔥 👉 ACTUALIZAR BOTONES
+        this.updatePlayersArea();
 
         const container = document.getElementById('multipleChoiceContainer');
         const text = document.getElementById('multipleChoiceText');

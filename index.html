@@ -11,6 +11,7 @@
 </head>
 
 <body>
+    <!-- INTRO -->
     <!-- <div id="introScreen">
         <div class="curtain curtain-left"></div>
         <div class="curtain curtain-right"></div>
@@ -18,10 +19,12 @@
     </div> -->
 
     <div class="container">
+        <!-- MODOS -->
         <div class="mode-controls-panel">
             <button id="modeGameBtn" class="mode-btn active" onclick="game.setMode('game')">Modo Juego</button>
             <button id="modeEditBtn" class="mode-btn" onclick="game.setMode('edit')">Modo Edición</button>
             <button id="musicBtn" class="mode-btn" onclick="game.toggleMusic()">🎵 Reproducir Música</button>
+
             <div id="volumeContainer" style="margin-top: 10px; text-align:center; display:none;">
                 <label for="musicVolume" style="color:white; font-weight:bold;">Volumen</label><br>
                 <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.5"
@@ -29,39 +32,31 @@
             </div>
         </div>
 
+        <!-- HEADER -->
         <div class="header">
-            <div style="
-        display: flex;
-        align-items: center; /* Alinea los elementos verticalmente en el centro */
-        justify-content: center; /* Centra el grupo horizontalmente */
-        gap: 20px; /* Espacio entre la imagen de la izquierda, el título y la imagen de la derecha */
-    ">
-
-                <img src="./images/señalando.png" style="
-            height: 5em;
-            transform: scaleX(-1); /* Voltear horizontalmente */
-        " alt="Imagen señalando a la izquierda">
-
+            <div style="display: flex; align-items: center; justify-content: center; gap: 20px;">
+                <img src="./images/señalando.png" style="height: 5em; transform: scaleX(-1);">
                 <h1>Concursillo - UTH Edition</h1>
-
-                <img src="./images/señalando.png" style="
-            height: 5em;
-        " alt="Imagen señalando a la derecha">
+                <img src="./images/señalando.png" style="height: 5em;">
             </div>
         </div>
 
+        <!-- ACCIONES -->
         <div class="controls-panel">
             <div class="actions-list" id="actionsDropdown">
                 <button class="action-btn" onclick="game.playerManager.add()">➕ Agregar Jugador</button>
-                <button class="action-btn" onclick="game.teamManager.create()">👥 Crear Equipo (Grupal)</button>
+                <button class="action-btn" onclick="game.teamManager.create()">👥 Crear Equipo</button>
+
+                <!-- RONDA RELÁMPAGO -->
                 <button class="action-btn lr-action-btn" onclick="game.lightningRound.open()">⚡ Ronda Relámpago</button>
+
                 <button class="action-btn" onclick="game.editor.open()">✏️ Editar Preguntas</button>
                 <button class="action-btn" onclick="game.pointsManager.resetScores()">🔄 Reiniciar Puntos</button>
-                <button class="action-btn" onclick="game.pointsManager.resetQuestions()">❌ Reiniciar Preguntas
-                    Usadas</button>
+                <button class="action-btn" onclick="game.pointsManager.resetQuestions()">❌ Reiniciar Preguntas</button>
             </div>
         </div>
 
+        <!-- JUEGO -->
         <div id="gameModeContainer" class="mode-content">
             <div class="scoreboard" id="scoreboard"></div>
             <div class="board" id="board"></div>
@@ -69,16 +64,15 @@
             <div id="finalQuestionValue"></div>
         </div>
 
+        <!-- EDICIÓN -->
         <div id="editModeContainer" class="mode-content" style="display:none;">
             <h2 style="text-align: center;">Opciones de Ronda</h2>
-            <p class="edit-info">Selecciona la ronda para ver/editar su tablero de preguntas. Usa el botón "Editar
-                Preguntas" del menú Acciones para modificar el contenido.</p>
-
-            <div class="tabs-container" id="tabsContainer">
-            </div>
+            <p class="edit-info">Selecciona la ronda para ver/editar su tablero.</p>
+            <div class="tabs-container" id="tabsContainer"></div>
         </div>
     </div>
 
+    <!-- MODAL PREGUNTA -->
     <div class="modal" id="modal">
         <div class="modal-content">
             <div class="modal-main">
@@ -93,48 +87,71 @@
 
                 <div class="answer" id="answerText"></div>
 
+                <!-- BOTONES -->
                 <div class="buttons-top">
-                    <button class="btn info" style="background-color: yellow;" id="btnShowOptions"
-                        onclick="game.questionModal.showOptions()">Ver Pistas (50%)</button>
+                    <button id="btnShowOptions" class="btn info" style="background-color: yellow;"
+                        onclick="game.questionModal.showOptions()">
+                        Ver Pistas (50%)
+                    </button>
 
                     <button class="btn" onclick="game.questionModal.showAnswer()">Mostrar Respuesta</button>
 
+                    <!-- 🔥 BOTÓN RULETA -->
+                    <button id="toggleRouletteBtn" class="btn" style="background-color: blue; color: white;"
+                        onclick="game.questionModal.toggleRoulette()">
+                        Mostrar Ruleta
+                    </button>
+
                     <button class="btn danger" onclick="game.questionModal.close()">Cerrar</button>
+                </div>
+
+                <!-- 🎯 RULETA -->
+                <div id="rouletteWrapper" class="roulette-wrapper hidden">
+                    <div class="roulette-container">
+                        <div class="roulette-pointer"></div>
+                        <div class="roulette-wheel" id="rouletteWheel"></div>
+
+                        <button class="roulette-btn" id="spinRouletteBtn">
+                            Elegir quién juega
+                        </button>
+                    </div>
                 </div>
 
                 <div class="players-area" id="playersArea"></div>
             </div>
 
             <div class="presenter-container">
-                <img src="./images/leyendo.png" alt="Presentadora" class="presenter-img">
+                <img src="./images/leyendo.png" class="presenter-img">
             </div>
         </div>
     </div>
 
+    <!-- MODAL EDITOR -->
     <div class="editor-modal" id="editorModal">
         <div class="editor-content">
-            <h2 id="editorTitle">Editor de Juego</h2>
-
-            <button class="add-category-btn" onclick="game.editor.addCategory()">+ Agregar Categoría</button>
-
+            <h2>Editor de Juego</h2>
+            <button onclick="game.editor.addCategory()">+ Agregar Categoría</button>
             <div id="categoriesEditor"></div>
 
             <div class="editor-actions">
-                <button class="btn btn-save" onclick="game.editor.save()">Guardar Cambios</button>
-                <button class="btn danger btn-cancel" onclick="game.editor.close()">Cancelar</button>
+                <button onclick="game.editor.save()">Guardar</button>
+                <button onclick="game.editor.close()">Cancelar</button>
             </div>
         </div>
     </div>
 
+    <!-- MODAL EDITAR PREGUNTA -->
     <div class="editor-modal" id="questionEditorModal">
-        <div class="editor-content" id="questionEditorContent">
-        </div>
+        <div class="editor-content" id="questionEditorContent"></div>
     </div>
 
-    <!-- MODAL RONDA RELÁMPAGO -->
+    <!-- ⚡ MODAL RONDA RELÁMPAGO -->
     <div class="modal" id="lightningModal"></div>
 
+    <!-- AUDIO -->
+    <audio id="rouletteTick" src="./audio/ruleta.mp3" preload="auto"></audio>
     <audio id="gameMusic" src="./audio/Música preguntas 1 - 5 (Quien Quiere ser millonario).mp3" loop></audio>
+
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script type="module" src="js/main.js"></script>
 </body>
