@@ -180,16 +180,14 @@ export const Utils = {
 
         const mediaElement = this.createMediaHTML(mediaData);
 
-        if (mediaData.type === 'image') {
-            return `
-                <div class="spoiler-container" onclick="this.classList.add('revealed')">
-                    <span class="spoiler-label">Click para revelar</span>
-                    <div class="spoiler-content">${mediaElement}</div>
-                </div>
-            `;
-        }
-
-        return `<br>${mediaElement}`;
+        return `
+        <div class="spoiler-container" onclick="this.classList.add('revealed')">
+            <span class="spoiler-label">Click para revelar</span>
+            <div class="spoiler-content">
+                ${mediaElement}
+            </div>
+        </div>
+    `;
     },
 
     readFileAsDataURL(file) {

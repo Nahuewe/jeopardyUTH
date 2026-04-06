@@ -16,8 +16,8 @@
 
         <!-- BARRA DE MODOS -->
         <div class="mode-controls-panel">
-            <button id="modeGameBtn" class="mode-btn active" onclick="game.setMode('game')">🎮 Modo Juego</button>
-            <button id="modeEditBtn" class="mode-btn" onclick="game.setMode('edit')">✏️ Modo Edición</button>
+            <button id="modeGameBtn" class="mode-btn active" onclick="game.setMode('game')">Modo Juego</button>
+            <button id="modeEditBtn" class="mode-btn" onclick="game.setMode('edit')">Modo Edición</button>
             <div class="mode-btn-separator"></div>
             <button id="musicBtn" class="mode-btn" onclick="game.toggleMusic()">🎵 Música</button>
             <div id="volumeContainer" style="display:none; align-items:center; gap:8px;">
@@ -41,7 +41,7 @@
             <div class="actions-list" id="actionsDropdown">
                 <button class="action-btn" onclick="game.playerManager.add()">➕ Agregar Jugador</button>
                 <button class="action-btn" onclick="game.teamManager.create()">👥 Crear Equipo</button>
-                <button class="action-btn lr-action-btn" onclick="game.lightningRound.open()">⚡ Ronda Relámpago</button>
+                <!-- <button class="action-btn lr-action-btn" onclick="game.lightningRound.open()">⚡ Ronda Relámpago</button> -->
                 <button class="action-btn" onclick="game.editor.open()">✏️ Editar Preguntas</button>
                 <button class="action-btn" onclick="game.pointsManager.resetScores()">🔄 Reiniciar Puntos</button>
                 <button class="action-btn" onclick="game.pointsManager.resetQuestions()">❌ Reiniciar Preguntas</button>

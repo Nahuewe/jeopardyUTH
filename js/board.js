@@ -101,8 +101,8 @@ export class Board {
             <div class="final-body">
                 <div class="final-question-preview">${questionPreview}</div>
                 <div class="final-meta">$${finalQuestion.value} ${finalQuestion.used ? ' (usada)' : ''}</div>
-                <button onclick="window.game.questionModal.openFinal()" ${finalQuestion.used ? 'disabled' : ''}>
-                    Abrir Pregunta Final
+                <button onclick="window.game.lightningRound.open()" ${finalQuestion.used ? 'disabled' : ''}>
+                    ⚡ Iniciar Ronda Relámpago
                 </button>
             </div>
         `;
@@ -122,13 +122,12 @@ export class Board {
 
         const isUsed = !!finalQuestion.used;
         finalTile.className = "final-question-tile" + (isUsed ? ' used' : '');
-        finalTile.onclick = isUsed ? null : () => this.questionModal.openFinal();
+        finalTile.onclick = isUsed ? null : () => window.game.lightningRound.open();
 
         finalTile.innerHTML = `
             <div class="final-tile-inner">
-                <div class="final-title">⭐ PREGUNTA FINAL</div>
-                <div class="final-value">$${finalQuestion.value || 0}</div>
-                ${!isUsed ? '<div class="final-tile-hint">Click para abrir</div>' : '<div class="final-tile-hint">Ya usada</div>'}
+                <div class="final-title">⭐ RONDA RELAMPAGO</div>
+                ${!isUsed ? '<div class="final-tile-hint">Click para empezar</div>' : '<div class="final-tile-hint">Ya usada</div>'}
             </div>
         `;
     }

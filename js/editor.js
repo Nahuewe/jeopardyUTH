@@ -121,55 +121,55 @@ export class Editor {
     }
 
     renderFinalQuestion() {
-        const finalDiv = document.createElement('div');
-        finalDiv.className = 'question-item final-question';
+    //     const finalDiv = document.createElement('div');
+    //     finalDiv.className = 'question-item final-question';
 
-        const fq = this.gameState.editingGameData.finalQuestion || {
-            value: 500,
-            question: '',
-            answer: '',
-            media1: null,
-            media2: null,
-            multipleChoice: '',
-            used: false,
-            usedWithOptions: false
-        };
+    //     const fq = this.gameState.editingGameData.finalQuestion || {
+    //         value: 500,
+    //         question: '',
+    //         answer: '',
+    //         media1: null,
+    //         media2: null,
+    //         multipleChoice: '',
+    //         used: false,
+    //         usedWithOptions: false
+    //     };
 
-        finalDiv.innerHTML = `
-        <div class="question-header" style="margin-top:1rem; border-top:1px dashed #444; padding-top:0.75rem;">
-            <h3>Pregunta Final</h3>
-        </div>
+    //     finalDiv.innerHTML = `
+    //     <div class="question-header" style="margin-top:1rem; border-top:1px dashed #444; padding-top:0.75rem;">
+    //         <h3>Pregunta Final</h3>
+    //     </div>
 
-        <label>Puntos:</label>
-        <input type="number" id="final_value" value="${fq.value}" min="0" step="50">
+    //     <label>Puntos:</label>
+    //     <input type="number" id="final_value" value="${fq.value}" min="0" step="50">
 
-        <label>Pregunta:</label>
-        <textarea id="final_question">${fq.question || ''}</textarea>
+    //     <label>Pregunta:</label>
+    //     <textarea id="final_question">${fq.question || ''}</textarea>
 
-        <label>Respuesta:</label>
-        <textarea id="final_answer">${fq.answer || ''}</textarea>
+    //     <label>Respuesta:</label>
+    //     <textarea id="final_answer">${fq.answer || ''}</textarea>
 
-        <label>Opciones Múltiple:</label>
-        <textarea id="final_multipleChoice"  placeholder="Ej: A / B / C (separar con /)">${fq.multipleChoice || ''}</textarea>
+    //     <label>Opciones Múltiple:</label>
+    //     <textarea id="final_multipleChoice"  placeholder="Ej: A / B / C (separar con /)">${fq.multipleChoice || ''}</textarea>
 
-        <div class="media-section">
-            <label style="margin-left:5px;">Multimedia 1:</label>
-            <input style="margin-left:5px;" type="file" id="final_media1" accept="image/*,video/*,audio/*">
-            <div id="final_media1_preview">
-                ${fq.media1 ? this.createMediaPreview(fq.media1, -1, 0, 'media1') : ''}
-            </div>
-        </div>
+    //     <div class="media-section">
+    //         <label style="margin-left:5px;">Multimedia 1:</label>
+    //         <input style="margin-left:5px;" type="file" id="final_media1" accept="image/*,video/*,audio/*">
+    //         <div id="final_media1_preview">
+    //             ${fq.media1 ? this.createMediaPreview(fq.media1, -1, 0, 'media1') : ''}
+    //         </div>
+    //     </div>
 
-        <div class="media-section">
-            <label style="margin-left:5px;">Multimedia 2:</label>
-            <input style="margin-left:5px;" type="file" id="final_media2" accept="image/*,video/*,audio/*">
-            <div id="final_media2_preview">
-                ${fq.media2 ? this.createMediaPreview(fq.media2, -1, 0, 'media2') : ''}
-            </div>
-        </div>
-    `;
+    //     <div class="media-section">
+    //         <label style="margin-left:5px;">Multimedia 2:</label>
+    //         <input style="margin-left:5px;" type="file" id="final_media2" accept="image/*,video/*,audio/*">
+    //         <div id="final_media2_preview">
+    //             ${fq.media2 ? this.createMediaPreview(fq.media2, -1, 0, 'media2') : ''}
+    //         </div>
+    //     </div>
+    // `;
 
-        this.editorElement.appendChild(finalDiv);
+    //     this.editorElement.appendChild(finalDiv);
 
         setTimeout(() => {
             document.getElementById('final_media1')?.addEventListener('change',

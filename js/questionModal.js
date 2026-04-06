@@ -96,8 +96,18 @@ export class QuestionModal {
             const label = document.createElement("div");
             label.className = "roulette-label";
             label.textContent = scorable.name;
-            const angle = sliceAngle * index + sliceAngle / 2;
-            label.style.transform = `rotate(${angle}deg) translate(130px)`;
+
+            const angleDeg = sliceAngle * index + sliceAngle / 2;
+            const angleRad = (angleDeg - 90) * (Math.PI / 180);
+
+            const r = 140 * 0.55;
+            const x = 50 + (r / 140) * 50 * Math.cos(angleRad);
+            const y = 50 + (r / 140) * 50 * Math.sin(angleRad);
+
+            label.style.position = 'absolute';
+            label.style.left = `${x}%`;
+            label.style.top = `${y}%`;
+            label.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg)`;
             label.style.setProperty('--label-color', scorable.color || '#fff');
             wheel.appendChild(label);
         });
@@ -130,7 +140,7 @@ export class QuestionModal {
         this.lastTickIndex = null;
 
         const tickInterval = setInterval(() => {
-            const normalized = (270 - (this.rouletteAngle % 360) + 360) % 360;
+            const normalized = (360 - (this.rouletteAngle % 360) + 360) % 360;
             const index = Math.floor(normalized / sliceAngle) % scorables.length;
             if (index !== this.lastTickIndex) {
                 this.lastTickIndex = index;
@@ -149,7 +159,7 @@ export class QuestionModal {
             spinBtn.textContent = "🔀 Girar de nuevo";
 
             const finalAngle = (this.rouletteAngle % 360 + 360) % 360;
-            const pointerAngle = (270 - finalAngle + 360) % 360;
+            const pointerAngle = (360 - finalAngle + 360) % 360;
             const selectedIndex = Math.floor(pointerAngle / sliceAngle) % scorables.length;
 
             this.selectedScorableIndex = selectedIndex;

@@ -1532,6 +1532,7 @@ textarea,
     left: 50%;
     transform-origin: 0 0;
     white-space: nowrap;
+    transform-origin: center center;
     font-size: clamp(0.8rem, 1.2vw, 1rem); /* más responsive */
     font-weight: 700;
     color: #ffffff;
