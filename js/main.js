@@ -13,6 +13,7 @@ import { PlayerManager } from './playerManager.js';
 import { TeamManager } from './teamManager.js';
 import { Editor } from './editor.js';
 import { Utils } from './utils.js';
+import { LightningRound } from './lightningRound.js';
 
 class JeopardyGame {
     constructor() {
@@ -33,6 +34,7 @@ class JeopardyGame {
         this.board.questionModal = this.questionModal;
         this.scoreboard.playerManager = this.playerManager;
         this.scoreboard.teamManager = this.teamManager;
+        this.lightningRound = new LightningRound(this.state, this.scoreboard);
     }
 
     setupGlobalReferences() {
