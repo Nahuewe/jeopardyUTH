@@ -73,7 +73,7 @@ export class GameState {
             audio.play();
             btn.textContent = "⏸️ Pausar Música";
             if (volumeContainer) {
-                volumeContainer.style.display = "block";
+                volumeContainer.style.display = "flex";
             }
 
         } else {

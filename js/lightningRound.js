@@ -4,6 +4,7 @@
 ================================ */
 
 import { Storage } from './storage.js';
+import { Utils } from './utils.js';
 
 export class LightningRound {
     constructor(gameState, scoreboard) {
@@ -252,6 +253,7 @@ export class LightningRound {
         }
 
         Storage.savePlayers(this.gameState.players);
+        Utils.toast(`⚡ +${this.pointsPerCorrect} → ${current.name}`, 'success');
         this.scoreboard.render();
 
         // Avanzar al siguiente jugador (circular)
@@ -315,7 +317,6 @@ export class LightningRound {
     // ─────────────────────────────────────────
     //  PANTALLA DE GANADOR
     // ─────────────────────────────────────────
-
     _renderWinner() {
         const winner = this.participants[0];
         const defaultAvatar = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="%237f8c8d" d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3c0 16.2 13.1 29.7 30 29.7H418c16.9 0 30-13.5 30-29.7C448 383.8 368.2 304 269.7 304H178.3z"/></svg>`;

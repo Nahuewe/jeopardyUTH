@@ -15,12 +15,13 @@ export class PointsManager {
 
     awardPlayer(playerIndex, points, col, row, usedOptions) {
         const finalPoints = usedOptions ? Math.ceil(points / 2) : points;
-        this.gameState.players[playerIndex].score += finalPoints;
+        const player = this.gameState.players[playerIndex];
+        player.score += finalPoints;
 
         this.markQuestionAsUsed(col, row, usedOptions);
         this.completeAward();
+        Utils.toast(`✅ +$${finalPoints} → ${player.name}`, 'success');
         window.game.questionModal.showCorrectAnimation();
-
     }
 
     deductPlayer(playerIndex, points) {
@@ -28,12 +29,14 @@ export class PointsManager {
 
         Swal.fire({
             icon: 'question',
-            title: '¿Restar puntos?',
-            text: `¿Quitar $${points} a ${player.name}?`,
+            title: `¿Restar puntos?`,
+            html: `<p>¿Quitarle <strong>$${points}</strong> a <strong>${player.name}</strong>?</p>`,
             showCancelButton: true,
             confirmButtonText: 'Restar',
             cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#c0392b'
+            confirmButtonColor: '#c0392b',
+            background: '#2f3136',
+            color: '#dcddde'
         }).then(result => {
             if (result.isConfirmed) {
                 player.score -= points;
@@ -41,23 +44,19 @@ export class PointsManager {
                 window.game.questionModal.showIncorrectAnimation();
                 this.scoreboard.render();
                 Utils.playDeductionEffects();
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Puntos restados',
-                    text: `${player.name} perdió $${points}.`,
-                    confirmButtonColor: '#27ae60'
-                });
+                Utils.toast(`❌ -$${points} → ${player.name}`, 'error');
             }
         });
     }
 
     awardTeam(teamIndex, points, col, row, usedOptions) {
         const finalPoints = usedOptions ? Math.ceil(points / 2) : points;
-        this.gameState.teams[teamIndex].score += finalPoints;
+        const team = this.gameState.teams[teamIndex];
+        team.score += finalPoints;
 
         this.markQuestionAsUsed(col, row, usedOptions);
         this.completeAward();
+        Utils.toast(`✅ +$${finalPoints} → ${team.name}`, 'success');
         Storage.saveTeams(this.gameState.teams);
     }
 
@@ -66,12 +65,14 @@ export class PointsManager {
 
         Swal.fire({
             icon: 'question',
-            title: '¿Restar puntos?',
-            text: `¿Quitar $${points} a ${team.name}?`,
+            title: `¿Restar puntos?`,
+            html: `<p>¿Quitarle <strong>$${points}</strong> a <strong>${team.name}</strong>?</p>`,
             showCancelButton: true,
             confirmButtonText: 'Restar',
             cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#c0392b'
+            confirmButtonColor: '#c0392b',
+            background: '#2f3136',
+            color: '#dcddde'
         }).then(result => {
             if (result.isConfirmed) {
                 team.score -= points;
@@ -79,13 +80,7 @@ export class PointsManager {
                 window.game.questionModal.showIncorrectAnimation();
                 this.scoreboard.render();
                 Utils.playDeductionEffects();
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Puntos restados',
-                    text: `${team.name} perdió $${points}.`,
-                    confirmButtonColor: '#27ae60'
-                });
+                Utils.toast(`❌ -$${points} → ${team.name}`, 'error');
             }
         });
     }
@@ -116,23 +111,21 @@ export class PointsManager {
         Swal.fire({
             icon: 'warning',
             title: '¿Reiniciar puntos?',
-            text: 'Todos los jugadores volverán a 0.',
+            text: 'Todos los jugadores y equipos volverán a $0.',
             showCancelButton: true,
             confirmButtonText: 'Reiniciar',
             cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#e67e22'
+            confirmButtonColor: '#e67e22',
+            background: '#2f3136',
+            color: '#dcddde'
         }).then(result => {
             if (result.isConfirmed) {
                 this.gameState.players.forEach(p => p.score = 0);
+                this.gameState.teams.forEach(t => t.score = 0);
                 Storage.savePlayers(this.gameState.players);
+                Storage.saveTeams(this.gameState.teams);
                 this.scoreboard.render();
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Listo',
-                    text: 'Los puntos se reiniciaron.',
-                    confirmButtonColor: '#27ae60'
-                });
+                Utils.toast('🔄 Puntos reiniciados', 'info');
             }
         });
     }
@@ -141,33 +134,30 @@ export class PointsManager {
         Swal.fire({
             icon: 'warning',
             title: '¿Reiniciar preguntas?',
-            text: 'Esto hará que todas las preguntas de la ronda actual vuelvan a estar disponibles.',
+            text: 'Todas las preguntas de la ronda actual volverán a estar disponibles.',
             showCancelButton: true,
             confirmButtonText: 'Reiniciar',
             cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#c0392b'
+            confirmButtonColor: '#c0392b',
+            background: '#2f3136',
+            color: '#dcddde'
         }).then(result => {
             if (result.isConfirmed) {
                 const currentData = this.gameState.getCurrentRoundData();
                 currentData.questions.forEach(col =>
-                    col.forEach(q => q.used = false)
+                    col.forEach(q => { q.used = false; q.usedWithOptions = false; })
                 );
 
                 if (currentData.finalQuestion) {
                     currentData.finalQuestion.used = false;
+                    currentData.finalQuestion.usedWithOptions = false;
                 }
 
                 this.gameState.usedCells.clear();
                 Storage.saveGameData(this.gameState.roundsData);
                 this.board.render();
                 this.board.renderFinalQuestionTile();
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Preguntas reiniciadas',
-                    text: 'Todas las preguntas de la ronda actual están disponibles nuevamente.',
-                    confirmButtonColor: '#27ae60'
-                });
+                Utils.toast('❌ Preguntas reiniciadas', 'info');
             }
         });
     }

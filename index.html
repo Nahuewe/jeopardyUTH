@@ -11,33 +11,28 @@
 </head>
 
 <body>
-    <!-- INTRO -->
-    <!-- <div id="introScreen">
-        <div class="curtain curtain-left"></div>
-        <div class="curtain curtain-right"></div>
-        <h1 class="intro-title">¡Bienvenidos a Jeopardy UTH!</h1>
-    </div> -->
 
     <div class="container">
-        <!-- MODOS -->
-        <div class="mode-controls-panel">
-            <button id="modeGameBtn" class="mode-btn active" onclick="game.setMode('game')">Modo Juego</button>
-            <button id="modeEditBtn" class="mode-btn" onclick="game.setMode('edit')">Modo Edición</button>
-            <button id="musicBtn" class="mode-btn" onclick="game.toggleMusic()">🎵 Reproducir Música</button>
 
-            <div id="volumeContainer" style="margin-top: 10px; text-align:center; display:none;">
-                <label for="musicVolume" style="color:white; font-weight:bold;">Volumen</label><br>
+        <!-- BARRA DE MODOS -->
+        <div class="mode-controls-panel">
+            <button id="modeGameBtn" class="mode-btn active" onclick="game.setMode('game')">🎮 Modo Juego</button>
+            <button id="modeEditBtn" class="mode-btn" onclick="game.setMode('edit')">✏️ Modo Edición</button>
+            <div class="mode-btn-separator"></div>
+            <button id="musicBtn" class="mode-btn" onclick="game.toggleMusic()">🎵 Música</button>
+            <div id="volumeContainer" style="display:none; align-items:center; gap:8px;">
+                <label for="musicVolume" style="color:var(--text-muted); font-size:0.82rem;">🔊</label>
                 <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.5"
-                    style="width:150px; cursor:pointer;">
+                    style="width:90px; cursor:pointer; accent-color: var(--accent-blue);">
             </div>
         </div>
 
         <!-- HEADER -->
         <div class="header">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 20px;">
-                <img src="./images/señalando.png" style="height: 5em; transform: scaleX(-1);">
+            <div style="display:flex; align-items:center; justify-content:center; gap:20px;">
+                <img src="./images/señalando.png" style="height:5em; transform:scaleX(-1);" alt="">
                 <h1>Concursillo - UTH Edition</h1>
-                <img src="./images/señalando.png" style="height: 5em;">
+                <img src="./images/señalando.png" style="height:5em;" alt="">
             </div>
         </div>
 
@@ -46,17 +41,14 @@
             <div class="actions-list" id="actionsDropdown">
                 <button class="action-btn" onclick="game.playerManager.add()">➕ Agregar Jugador</button>
                 <button class="action-btn" onclick="game.teamManager.create()">👥 Crear Equipo</button>
-
-                <!-- RONDA RELÁMPAGO -->
                 <button class="action-btn lr-action-btn" onclick="game.lightningRound.open()">⚡ Ronda Relámpago</button>
-
                 <button class="action-btn" onclick="game.editor.open()">✏️ Editar Preguntas</button>
                 <button class="action-btn" onclick="game.pointsManager.resetScores()">🔄 Reiniciar Puntos</button>
                 <button class="action-btn" onclick="game.pointsManager.resetQuestions()">❌ Reiniciar Preguntas</button>
             </div>
         </div>
 
-        <!-- JUEGO -->
+        <!-- MODO JUEGO -->
         <div id="gameModeContainer" class="mode-content">
             <div class="scoreboard" id="scoreboard"></div>
             <div class="board" id="board"></div>
@@ -64,78 +56,90 @@
             <div id="finalQuestionValue"></div>
         </div>
 
-        <!-- EDICIÓN -->
+        <!-- MODO EDICIÓN -->
         <div id="editModeContainer" class="mode-content" style="display:none;">
-            <h2 style="text-align: center;">Opciones de Ronda</h2>
-            <p class="edit-info">Selecciona la ronda para ver/editar su tablero.</p>
+            <h2 style="text-align:center;">Opciones de Ronda</h2>
+            <p class="edit-info">Seleccioná la ronda para ver/editar su tablero de preguntas.</p>
             <div class="tabs-container" id="tabsContainer"></div>
         </div>
+
     </div>
 
-    <!-- MODAL PREGUNTA -->
+    <!-- ═══════════════════════════════════
+         MODAL DE PREGUNTA
+    ═══════════════════════════════════ -->
     <div class="modal" id="modal">
         <div class="modal-content">
             <div class="modal-main">
+
+                <!-- Categoría y puntos -->
                 <h2 id="categoryTitle"></h2>
                 <div class="value" id="pointValue"></div>
+
+                <!-- Pregunta -->
                 <div class="question" id="questionText"></div>
 
+                <!-- Opciones múltiples -->
                 <div class="multiple-choice-container" id="multipleChoiceContainer">
-                    <h3 style="text-align: center;">Opciones</h3>
+                    <h3 style="text-align:center; margin-bottom:10px;">🔤 Opciones</h3>
                     <div class="multiple-choice-grid" id="multipleChoiceText"></div>
                 </div>
 
+                <!-- Respuesta -->
                 <div class="answer" id="answerText"></div>
 
-                <!-- BOTONES -->
+                <!-- Botones de acción -->
                 <div class="buttons-top">
-                    <button id="btnShowOptions" class="btn info" style="background-color: yellow;"
+                    <button id="btnShowOptions" class="btn btn-pistas"
                         onclick="game.questionModal.showOptions()">
-                        Ver Pistas (50%)
+                        💡 Ver Pistas (50%)
                     </button>
-
-                    <button class="btn" onclick="game.questionModal.showAnswer()">Mostrar Respuesta</button>
-
-                    <!-- 🔥 BOTÓN RULETA -->
-                    <button id="toggleRouletteBtn" class="btn" style="background-color: blue; color: white;"
+                    <button class="btn" onclick="game.questionModal.showAnswer()">
+                        👁️ Mostrar Respuesta
+                    </button>
+                    <button id="toggleRouletteBtn" class="btn btn-roulette"
                         onclick="game.questionModal.toggleRoulette()">
-                        Mostrar Ruleta
+                        🎯 Mostrar Ruleta
                     </button>
-
-                    <button class="btn danger" onclick="game.questionModal.close()">Cerrar</button>
+                    <button class="btn danger" onclick="game.questionModal.close()">
+                        ✖ Cerrar
+                    </button>
                 </div>
 
-                <!-- 🎯 RULETA -->
+                <!-- Ruleta -->
                 <div id="rouletteWrapper" class="roulette-wrapper hidden">
                     <div class="roulette-container">
                         <div class="roulette-pointer"></div>
                         <div class="roulette-wheel" id="rouletteWheel"></div>
-
                         <button class="roulette-btn" id="spinRouletteBtn">
-                            Elegir quién juega
+                            🎰 Elegir quién juega
                         </button>
                     </div>
                 </div>
 
+                <!-- Jugadores -->
                 <div class="players-area" id="playersArea"></div>
+
             </div>
 
+            <!-- Presentadora -->
             <div class="presenter-container">
-                <img src="./images/leyendo.png" class="presenter-img">
+                <img src="./images/leyendo.png" class="presenter-img" alt="Presentadora">
             </div>
         </div>
     </div>
 
-    <!-- MODAL EDITOR -->
+    <!-- ═══════════════════════════════════
+         MODAL EDITOR
+    ═══════════════════════════════════ -->
     <div class="editor-modal" id="editorModal">
         <div class="editor-content">
-            <h2>Editor de Juego</h2>
-            <button onclick="game.editor.addCategory()">+ Agregar Categoría</button>
+            <h2 id="editorTitle">Editor de Juego</h2>
+            <button class="add-category-btn" onclick="game.editor.addCategory()">+ Agregar Categoría</button>
             <div id="categoriesEditor"></div>
-
             <div class="editor-actions">
-                <button onclick="game.editor.save()">Guardar</button>
-                <button onclick="game.editor.close()">Cancelar</button>
+                <button class="btn btn-save" onclick="game.editor.save()">Guardar Cambios</button>
+                <button class="btn danger btn-cancel" onclick="game.editor.close()">Cancelar</button>
             </div>
         </div>
     </div>

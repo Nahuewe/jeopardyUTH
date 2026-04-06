@@ -8,6 +8,7 @@ export class Board {
         this.gameState = gameState;
         this.questionModal = questionModal;
         this.boardElement = document.getElementById("board");
+        this._lastClickedCell = null;
     }
 
     render() {
@@ -17,7 +18,12 @@ export class Board {
         const currentData = this.gameState.getCurrentRoundData();
 
         if (!currentData.categories.length) {
-            this.boardElement.innerHTML = "<p class='empty'>No hay categorías creadas aún para esta ronda.</p>";
+            this.boardElement.innerHTML = `
+                <div class="board-empty">
+                    <span>📋</span>
+                    <p>No hay categorías creadas para esta ronda.</p>
+                    <small>Usá el botón <strong>Editar Preguntas</strong> en Acciones.</small>
+                </div>`;
             return;
         }
 
@@ -55,11 +61,18 @@ export class Board {
             displayValue = Math.ceil(question.value / 2);
         }
 
-        cell.textContent = `$${displayValue}`;
-        cell.onclick = () => this.questionModal.open(colIndex, rowIndex);
-
         if (question.used) {
             cell.classList.add("used");
+            cell.innerHTML = `<span class="cell-used-icon">✓</span>`;
+        } else {
+            cell.textContent = `$${displayValue}`;
+            cell.onclick = (e) => {
+                cell.classList.add('cell-opening');
+                setTimeout(() => {
+                    this.questionModal.open(colIndex, rowIndex);
+                    cell.classList.remove('cell-opening');
+                }, 120);
+            };
         }
 
         return cell;
@@ -104,16 +117,19 @@ export class Board {
             finalTile = document.createElement("div");
             finalTile.id = "finalQuestionTile";
             finalTile.className = "final-question-tile";
-            finalTile.onclick = () => this.questionModal.openFinal();
             gameContainer.appendChild(finalTile);
         }
 
-        finalTile.className = "final-question-tile" + (finalQuestion.used ? ' used' : '');
-        finalTile.onclick = finalQuestion.used ? null : () => this.questionModal.openFinal();
+        const isUsed = !!finalQuestion.used;
+        finalTile.className = "final-question-tile" + (isUsed ? ' used' : '');
+        finalTile.onclick = isUsed ? null : () => this.questionModal.openFinal();
 
         finalTile.innerHTML = `
-            <div class="final-title">PREGUNTA FINAL</div>
-            <div class="final-value">$${finalQuestion.value || 0}</div>
+            <div class="final-tile-inner">
+                <div class="final-title">⭐ PREGUNTA FINAL</div>
+                <div class="final-value">$${finalQuestion.value || 0}</div>
+                ${!isUsed ? '<div class="final-tile-hint">Click para abrir</div>' : '<div class="final-tile-hint">Ya usada</div>'}
+            </div>
         `;
     }
 }
