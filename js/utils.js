@@ -150,11 +150,11 @@ export const Utils = {
         if (!mediaData) return '';
 
         const maxWidth = mediaData.type === 'image' ? '300px' : '320px';
-        const audioStyle = 'width:20rem; height:2rem;';
+        const audioStyle = 'width:32rem; height:5rem; padding:0.5rem;';
 
         const elements = {
             image: `<img class="spoiler-content-media" src="${mediaData.url}" style="max-width:${maxWidth};">`,
-            audio: `<audio class="spoiler-content-media" src="${mediaData.url}" controls style="${audioStyle}"></audio>`,
+            audio: `<audio src="${mediaData.url}" controls style="${audioStyle}"></audio>`,
             video: `<video class="spoiler-content-media" src="${mediaData.url}" controls style="max-width:${maxWidth};"></video>`
         };
 
@@ -166,7 +166,7 @@ export const Utils = {
 
         const mediaElement = this.createMediaHTML(mediaData);
 
-        if (mediaData.type === 'image') {
+        if (mediaData.type === 'image' || mediaData.type === 'video') {
             return `
                 <div class="spoiler-container" onclick="this.classList.add('revealed')">
                     <span class="spoiler-label">Click para revelar</span>

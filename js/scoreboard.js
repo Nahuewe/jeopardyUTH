@@ -36,6 +36,35 @@ export class Scoreboard {
         });
     }
 
+    renderTeamAvatars(team) {
+        const defaultAvatar =
+            'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="#7f8c8d" d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3c0 16.2 13.1 29.7 30 29.7H418c16.9 0 30-13.5 30-29.7C448 383.8 368.2 304 269.7 304H178.3z"/></svg>'
+
+        return team.members
+            .map(memberName => {
+                const player = this.gameState.players.find(
+                    p => p.name === memberName
+                )
+
+                if (!player) return ''
+
+                return `
+                <div class="team-member">
+                    <img
+                        src="${player.avatar || defaultAvatar}"
+                        alt="${player.name}"
+                        class="team-member-avatar"
+                        style="border-color:${player.color}"
+                    />
+                    <span class="team-member-name">
+                        ${player.name}
+                    </span>
+                </div>
+            `
+            })
+            .join('')
+    }
+
     showEmptyMessage(isTeamMode) {
         const message = isTeamMode
             ? "Modo Grupal: No hay equipos aún. ¡Ve a Acciones y crea un equipo!"
@@ -50,14 +79,18 @@ export class Scoreboard {
         card.style.border = `3px solid ${scorable.color}`;
 
         const detailsHTML = isTeamMode
-            ? `<p class="team-members">Miembros: ${scorable.members.join(', ')}</p>`
+            ? `
+        <div class="team-members-row">
+            ${this.renderTeamAvatars(scorable)}
+        </div>
+      `
             : '';
 
         const defaultAvatar = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="#7f8c8d" d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3c0 16.2 13.1 29.7 30 29.7H418c16.9 0 30-13.5 30-29.7C448 383.8 368.2 304 269.7 304H178.3z"/></svg>';
 
         const avatarHTML = !isTeamMode && scorable.avatar
             ? `<img src="${scorable.avatar}" alt="Avatar" class="scoreboard-avatar" style="border: 2px solid ${scorable.color};">`
-            : `<img src="${defaultAvatar}`;
+            : '';
 
         const editAction = isTeamMode
             ? `window.game.teamManager.edit(${index})`

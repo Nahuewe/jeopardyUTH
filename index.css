@@ -291,7 +291,7 @@ textarea,
 
 .scoreboard {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr));
     gap: var(--spacing-lg);
     margin-bottom: var(--spacing-xxl);
 }
@@ -339,10 +339,36 @@ textarea,
     border-color: var(--success-green);
 }
 
-.team-members {
-    color: var(--text-muted);
-    margin: var(--spacing-sm) 0;
-    font-size: clamp(0.8rem, 1.5vw, 0.9rem);
+.team-member {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 110px;
+}
+
+.team-members-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.team-member-avatar {
+    width: 100px;
+    height: 100px;
+    margin: 10px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid;
+    background: #2c2f33;
+}
+
+.team-member-avatar {
+    margin-left: -10px;
+}
+
+.team-member-avatar:first-child {
+    margin-left: 0;
 }
 
 /* ================================
@@ -961,8 +987,8 @@ textarea,
 }
 
 .scoreboard-avatar {
-    width: 50px;
-    height: 50px;
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
     object-fit: cover;
     margin-right: 10px;
@@ -986,9 +1012,10 @@ textarea,
 
 .players-area {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
     gap: var(--spacing-md);
     padding-top: var(--spacing-lg);
+    padding-bottom: var(--spacing-lg);
     border-top: 1px solid var(--bg-primary);
 }
 
@@ -1017,6 +1044,115 @@ textarea,
 .player-deduct {
     background: var(--danger-red) !important;
     color: var(--text-white);
+}
+
+/* ================================
+   ROULETTE
+================================ */
+
+.roulette-container {
+    margin: 20px auto;
+    text-align: center;
+}
+
+.roulette-wheel {
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    border: 6px solid #fff;
+    margin: 0 auto 10px;
+    position: relative;
+
+    transition: transform 6s ease-out; /* ⬅ más tiempo, sin rebote */
+    background: #2c2f33;
+}
+
+.roulette-label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform-origin: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+    pointer-events: none;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+    transform-origin: 0 50%;
+}
+
+.roulette-slice {
+    position: absolute;
+    width: 50%;
+    height: 50%;
+    transform-origin: 100% 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.roulette-pointer {
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-top: 20px solid red;
+    margin: 0 auto 10px;
+}
+
+.roulette-pointer {
+    animation: pointerIdle 1.2s ease-in-out infinite;
+}
+
+.roulette-pointer.hit {
+    animation: pointerHit 0.25s ease-out;
+}
+
+@keyframes pointerIdle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+@keyframes pointerHit {
+    0% { transform: rotate(0deg); }
+    50% { transform: rotate(-18deg); }
+    100% { transform: rotate(0deg); }
+}
+
+
+.roulette-btn {
+    padding: 10px 18px;
+    margin-top: 10px;
+    font-weight: bold;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    background: var(--accent-blue);
+    color: white;
+}
+
+.roulette-wrapper.hidden {
+    display: none;
+}
+
+.roulette-wrapper {
+    margin-top: 15px;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 /* ================================

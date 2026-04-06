@@ -14,6 +14,10 @@ export class QuestionModal {
         this.currentQuestionPoints = 0;
         this.currentQuestionLocation = { col: -1, row: -1 };
         this.usedMultipleChoice = false;
+        this.rouletteAngle = 0;
+        this.selectedScorableIndex = null;
+        this.lastTickIndex = null;
+        this.tickAudio = document.getElementById("rouletteTick");
 
         this.setupEventListeners();
 
@@ -29,6 +33,19 @@ export class QuestionModal {
 
         this.currentPresenterIndex = 0;
         this.rotationInterval = null;
+    }
+
+    toggleRoulette() {
+        const wrapper = document.getElementById("rouletteWrapper");
+        const btn = document.getElementById("toggleRouletteBtn");
+
+        const isHidden = wrapper.classList.contains("hidden");
+
+        wrapper.classList.toggle("hidden");
+
+        btn.innerHTML = isHidden
+            ? "Ocultar ruleta"
+            : "Mostrar ruleta";
     }
 
     setupEventListeners() {
@@ -62,6 +79,113 @@ export class QuestionModal {
         }, 4000);
     }
 
+    renderRoulette() {
+        const wheel = document.getElementById("rouletteWheel");
+        const scorables = this.gameState.getCurrentScorables();
+
+        if (!wheel || !scorables.length) return;
+
+        wheel.innerHTML = "";
+
+        const sliceAngle = 360 / scorables.length;
+
+        const gradient = scorables.map((_, i) => {
+            const start = i * sliceAngle;
+            const end = start + sliceAngle;
+
+            // alternamos tonos suaves
+            const color = i % 2 === 0
+                ? "rgba(255,255,255,0.04)"
+                : "rgba(255,255,255,0.08)";
+
+            return `${color} ${start}deg ${end}deg`;
+        }).join(",");
+
+        wheel.style.background = `conic-gradient(${gradient})`;
+
+        scorables.forEach((scorable, index) => {
+            const label = document.createElement("div");
+            label.className = "roulette-label";
+            label.textContent = scorable.name;
+
+            const angle = sliceAngle * index + sliceAngle / 2;
+
+            label.style.transform = `
+                rotate(${angle}deg)
+                translate(130px)
+            `;
+
+            wheel.appendChild(label);
+        });
+    }
+
+    spinRoulette() {
+        const scorables = this.gameState.getCurrentScorables();
+        if (!scorables.length) return;
+
+        const wheel = document.getElementById("rouletteWheel");
+        const sliceAngle = 360 / scorables.length;
+
+        const spins = Math.floor(Math.random() * 4) + 8;
+        const randomAngle = Math.random() * 360;
+
+        this.rouletteAngle += spins * 360 + randomAngle;
+        wheel.style.transform = `rotate(${this.rouletteAngle}deg)`;
+
+        this.lastTickIndex = null;
+
+        const tickInterval = setInterval(() => {
+            const currentAngle =
+                (this.rouletteAngle -
+                    (wheel.getBoundingClientRect().width)) % 360;
+
+            const normalized =
+                (270 - currentAngle + 360) % 360;
+
+            const index =
+                Math.floor(normalized / sliceAngle) % scorables.length;
+
+            if (index !== this.lastTickIndex) {
+                this.lastTickIndex = index;
+                this.tickAudio.currentTime = 0;
+                this.tickAudio.play();
+            }
+        }, 60);
+
+        setTimeout(() => {
+            clearInterval(tickInterval);
+            const pointer = document.querySelector(".roulette-pointer");
+            pointer.classList.remove("hit");
+            void pointer.offsetWidth;
+            pointer.classList.add("hit");
+            const finalAngle = (this.rouletteAngle % 360 + 360) % 360;
+            const pointerAngle = (270 - finalAngle + 360) % 360;
+
+            const selectedIndex =
+                Math.floor(pointerAngle / sliceAngle) % scorables.length;
+
+            const selected = scorables[selectedIndex];
+            this.selectedScorableIndex = selectedIndex;
+
+            this.highlightWinner(selectedIndex);
+
+            Swal.fire({
+                icon: "success",
+                title: "¡Le toca jugar!",
+                text: selected.name,
+                confirmButtonColor: selected.color
+            });
+        }, 6000);
+    }
+
+    highlightWinner(index) {
+        document
+            .querySelectorAll(".roulette-label")
+            .forEach((label, i) => {
+                label.classList.toggle("winner", i === index);
+            });
+    }
+
     open(col, row) {
         const currentData = this.gameState.getCurrentRoundData();
         const questionData = currentData.questions[col][row];
@@ -81,6 +205,11 @@ export class QuestionModal {
         this.updatePlayersArea();
         this.modalElement.classList.add('active');
         this.startPresenterRotation();
+        this.renderRoulette();
+
+        document.getElementById("spinRouletteBtn").onclick = () => {
+            this.spinRoulette();
+        };
     }
 
     openFinal() {
@@ -102,6 +231,11 @@ export class QuestionModal {
         this.updatePlayersArea();
         this.modalElement.classList.add('active');
         this.startPresenterRotation();
+        this.renderRoulette();
+
+        document.getElementById("spinRouletteBtn").onclick = () => {
+            this.spinRoulette();
+        };
     }
 
     displayQuestion(categoryTitle, pointValue, questionData) {
@@ -252,7 +386,7 @@ export class QuestionModal {
         `;
     }
 
-   showAnswer() {
+    showAnswer() {
         document.getElementById('answerText').classList.add('show');
     }
 
