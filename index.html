@@ -24,13 +24,16 @@
         <div class="mode-controls-panel">
             <button id="modeGameBtn" class="mode-btn active" onclick="game.setMode('game')">Modo Juego</button>
             <button id="modeEditBtn" class="mode-btn" onclick="game.setMode('edit')">Modo Edición</button>
-            <div class="mode-btn-separator"></div>
+            <!-- <div class="mode-btn-separator"></div> -->
             <button id="musicBtn" class="mode-btn" onclick="game.toggleMusic()">🎵 Música</button>
             <div id="volumeContainer" style="display:none; align-items:center; gap:8px;">
                 <label for="musicVolume" style="color:var(--text-muted); font-size:0.82rem;">🔊</label>
                 <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.5"
                     style="width:90px; cursor:pointer; accent-color: var(--accent-blue);">
             </div>
+            <button id="toggleUiBtn" class="mode-btn" onclick="game.toggleUI()">
+                Ocultar UI
+            </button>
         </div>
 
         <!-- HEADER -->
@@ -87,7 +90,7 @@
 
                 <!-- Opciones múltiples -->
                 <div class="multiple-choice-container" id="multipleChoiceContainer">
-                    <h3 style="text-align:center; margin-bottom:10px;">🔤 Opciones</h3>
+                    <h3 style="text-align:center; margin-bottom:10px;">Opciones</h3>
                     <div class="multiple-choice-grid" id="multipleChoiceText"></div>
                 </div>
 
@@ -97,17 +100,17 @@
                 <!-- Botones de acción -->
                 <div class="buttons-top">
                     <button id="btnShowOptions" class="btn btn-pistas" onclick="game.questionModal.showOptions()">
-                        💡 Ver Pistas (50%)
+                        Ver Pistas (50%)
                     </button>
                     <button class="btn" onclick="game.questionModal.showAnswer()">
-                        👁️ Mostrar Respuesta
+                        Mostrar Respuesta
                     </button>
                     <button id="toggleRouletteBtn" class="btn btn-roulette"
                         onclick="game.questionModal.toggleRoulette()">
-                        🎯 Mostrar Ruleta
+                        Mostrar Ruleta
                     </button>
                     <button class="btn danger" onclick="game.questionModal.close()">
-                        ✖ Cerrar
+                        Cerrar
                     </button>
                 </div>
 

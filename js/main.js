@@ -181,6 +181,11 @@ class JeopardyGame {
             this.renderTabs();
         }
     }
+
+    toggleUI() {
+        this.state.toggleUI();
+        this.scoreboard.render();
+    }
 }
 
 document.addEventListener("DOMContentLoaded", async () => {

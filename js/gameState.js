@@ -15,6 +15,7 @@ export class GameState {
         this.players = [];
         this.usedCells = new Set();
         this.editingGameData = null;
+        this.uiHidden = false;
     }
 
     getCurrentRoundData() {
@@ -83,6 +84,27 @@ export class GameState {
             if (volumeContainer) {
                 volumeContainer.style.display = "none";
             }
+        }
+    }
+
+    toggleUI() {
+        this.uiHidden = !this.uiHidden;
+
+        const btn = document.getElementById("toggleUiBtn");
+        if (btn) {
+            btn.textContent = this.uiHidden ? "Mostrar UI" : "Ocultar UI";
+        }
+
+        const panel = document.querySelector('.mode-controls-panel');
+        if (!panel) return;
+
+        panel.querySelectorAll('#modeGameBtn, #modeEditBtn').forEach(b => {
+            b.style.display = this.uiHidden ? 'none' : 'inline-block';
+        });
+
+        const musicBtn = document.getElementById('musicBtn');
+        if (musicBtn) {
+            musicBtn.style.display = this.uiHidden ? 'none' : 'inline-block';
         }
     }
 }

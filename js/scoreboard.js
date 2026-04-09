@@ -27,12 +27,10 @@ export class Scoreboard {
             return;
         }
 
-        // Asignar medallas por ranking de puntaje
         const sorted = [...scorables].sort((a, b) => b.score - a.score);
         const rankMap = {};
         sorted.forEach((s, i) => { rankMap[s.name] = i; });
 
-        // Mostrar en orden alfabético
         const display = [...scorables].sort((a, b) => a.name.localeCompare(b.name));
 
         display.forEach((scorable) => {
@@ -62,6 +60,7 @@ export class Scoreboard {
     createScorableCard(scorable, index, isTeamMode, rank, scoreChanged) {
         const card = document.createElement('div');
         card.className = 'player-card';
+        const hideControls = this.gameState.uiHidden;
         card.style.setProperty('--card-color', scorable.color);
         card.style.borderTop = `4px solid ${scorable.color}`;
 
@@ -95,21 +94,27 @@ export class Scoreboard {
             : `$${scorable.score}`;
         const scoreClass = scorable.score < 0 ? 'score score-negative' : 'score';
 
-        card.innerHTML = `
-            <div class="player-card-top">
-                ${medalHTML}
-                <div class="player-card-avatar-wrap">
-                    <img src="${avatarSrc}" alt="${scorable.name}" class="scoreboard-avatar" style="border-color:${scorable.color};">
-                </div>
-            </div>
-            <h3 class="player-card-name" title="${scorable.name}">${scorable.name}</h3>
-            ${detailsHTML}
-            <div class="${scoreClass}">${scoreFormatted}</div>
-            <div class="controls">
-                <button class="player-card-edit-btn" onclick="${editAction}">✏️ Editar</button>
-                <button class="player-card-remove-btn" onclick="${removeAction}">🗑️ Eliminar</button>
-            </div>
+        const controlsHTML = hideControls
+            ? ''
+            : `
+        <div class="controls">
+            <button class="player-card-edit-btn" onclick="${editAction}">Editar</button>
+            <button class="player-card-remove-btn" onclick="${removeAction}">Eliminar</button>
+        </div>
         `;
+
+        card.innerHTML = `
+        <div class="player-card-top">
+            ${medalHTML}
+            <div class="player-card-avatar-wrap">
+                <img src="${avatarSrc}" alt="${scorable.name}" class="scoreboard-avatar" style="border-color:${scorable.color};">
+            </div>
+        </div>
+        <h3 class="player-card-name" title="${scorable.name}">${scorable.name}</h3>
+        ${detailsHTML}
+        <div class="${scoreClass}">${scoreFormatted}</div>
+        ${controlsHTML}
+    `;
 
         return card;
     }

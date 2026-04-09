@@ -39,7 +39,7 @@ export class QuestionModal {
         if (!wrapper || !btn) return;
         const isHidden = wrapper.classList.contains("hidden");
         wrapper.classList.toggle("hidden");
-        btn.textContent = isHidden ? "🎯 Ocultar Ruleta" : "🎯 Mostrar Ruleta";
+        btn.textContent = isHidden ? "Ocultar Ruleta" : "Mostrar Ruleta";
     }
 
     setupEventListeners() {
@@ -82,7 +82,6 @@ export class QuestionModal {
 
         const sliceAngle = 360 / scorables.length;
 
-        // Colores por sector usando el color de cada jugador
         const gradient = scorables.map((scorable, i) => {
             const start = i * sliceAngle;
             const end = start + sliceAngle;
@@ -156,7 +155,7 @@ export class QuestionModal {
         setTimeout(() => {
             clearInterval(tickInterval);
             spinBtn.disabled = false;
-            spinBtn.textContent = "🔀 Girar de nuevo";
+            spinBtn.textContent = "Girar de nuevo";
 
             const finalAngle = (this.rouletteAngle % 360 + 360) % 360;
             const pointerAngle = (360 - finalAngle + 360) % 360;
@@ -207,7 +206,7 @@ export class QuestionModal {
         }
         // Reset toggle button
         const toggleBtn = document.getElementById("toggleRouletteBtn");
-        if (toggleBtn) toggleBtn.textContent = "🎯 Mostrar Ruleta";
+        if (toggleBtn) toggleBtn.textContent = "Mostrar Ruleta";
 
         // Ensure roulette is hidden on open
         const wrapper = document.getElementById("rouletteWrapper");
@@ -236,7 +235,7 @@ export class QuestionModal {
             spinBtn.onclick = () => this.spinRoulette();
         }
         const toggleBtn = document.getElementById("toggleRouletteBtn");
-        if (toggleBtn) toggleBtn.textContent = "🎯 Mostrar Ruleta";
+        if (toggleBtn) toggleBtn.textContent = "Mostrar Ruleta";
 
         const wrapper = document.getElementById("rouletteWrapper");
         if (wrapper) wrapper.classList.add("hidden");
@@ -291,7 +290,6 @@ export class QuestionModal {
 
         this.usedMultipleChoice = true;
 
-        // Restar 50% de puntos al usar pistas
         this.currentQuestionPoints = Math.floor(this.currentQuestionPoints / 2);
         document.getElementById('pointValue').textContent = `$${this.currentQuestionPoints}`;
         this.updatePlayersArea();
@@ -338,7 +336,6 @@ export class QuestionModal {
             return;
         }
 
-        // Ordenar por score desc — líderes primero
         const sorted = [...scorables]
             .map((s, i) => ({ ...s, _original: i }))
             .sort((a, b) => b.score - a.score);
