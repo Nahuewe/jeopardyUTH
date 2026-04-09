@@ -123,7 +123,8 @@ export class QuestionModal {
             this.tickAudio.play().catch(() => { });
         }
 
-        const DURATION = 8500;
+        const DURATION = Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000;
+
         wheel.style.transition = `transform ${DURATION}ms cubic-bezier(0.17, 0.67, 0.12, 1)`;
         wheel.style.transform = `rotate(${this.rouletteAngle}deg)`;
 
