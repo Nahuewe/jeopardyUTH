@@ -734,7 +734,6 @@ textarea,
     color: var(--text-white);
     text-align: center;
     padding: clamp(10px, 2vw, 15px) var(--spacing-sm);
-    font-size: clamp(0.9rem, 1.8vw, 1.1rem);
     font-weight: bold;
     border-radius: var(--border-radius-lg);
     text-transform: uppercase;
