@@ -31,9 +31,22 @@
                 <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.5"
                     style="width:90px; cursor:pointer; accent-color: var(--accent-blue);">
             </div>
+            <button id="openRouletteGlobalBtn" class="mode-btn">
+                Ruleta
+            </button>
             <button id="toggleUiBtn" class="mode-btn" onclick="game.toggleUI()">
                 Ocultar UI
             </button>
+        </div>
+
+        <div id="rouletteGlobalWrapper" class="roulette-wrapper hidden">
+            <div class="roulette-container">
+                <div class="roulette-pointer"></div>
+                <div class="roulette-wheel" id="rouletteWheel"></div>
+                <button class="roulette-btn" id="spinRouletteBtn">
+                    Girar
+                </button>
+            </div>
         </div>
 
         <!-- HEADER -->
@@ -105,24 +118,9 @@
                     <button class="btn" onclick="game.questionModal.showAnswer()">
                         Mostrar Respuesta
                     </button>
-                    <button id="toggleRouletteBtn" class="btn btn-roulette"
-                        onclick="game.questionModal.toggleRoulette()">
-                        Mostrar Ruleta
-                    </button>
                     <button class="btn danger" onclick="game.questionModal.close()">
                         Cerrar
                     </button>
-                </div>
-
-                <!-- Ruleta -->
-                <div id="rouletteWrapper" class="roulette-wrapper hidden">
-                    <div class="roulette-container">
-                        <div class="roulette-pointer"></div>
-                        <div class="roulette-wheel" id="rouletteWheel"></div>
-                        <button class="roulette-btn" id="spinRouletteBtn">
-                            🎰 Elegir quién juega
-                        </button>
-                    </div>
                 </div>
 
                 <!-- Jugadores -->

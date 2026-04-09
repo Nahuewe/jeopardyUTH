@@ -163,7 +163,7 @@ export const Utils = {
     createMediaHTML(mediaData) {
         if (!mediaData) return '';
 
-        const maxWidth = mediaData.type === 'image' ? '300px' : '320px';
+        const maxWidth = mediaData.type === 'image' ? '320px' : '320px';
         const audioStyle = 'width:20rem; height:2rem;';
 
         const elements = {

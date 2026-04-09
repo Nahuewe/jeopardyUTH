@@ -33,15 +33,6 @@ export class QuestionModal {
         this.rotationInterval = null;
     }
 
-    toggleRoulette() {
-        const wrapper = document.getElementById("rouletteWrapper");
-        const btn = document.getElementById("toggleRouletteBtn");
-        if (!wrapper || !btn) return;
-        const isHidden = wrapper.classList.contains("hidden");
-        wrapper.classList.toggle("hidden");
-        btn.textContent = isHidden ? "Ocultar Ruleta" : "Mostrar Ruleta";
-    }
-
     setupEventListeners() {
         this.modalElement.onclick = (e) => {
             if (e.target === this.modalElement) this.close();
@@ -121,7 +112,7 @@ export class QuestionModal {
         const sliceAngle = 360 / scorables.length;
 
         spinBtn.disabled = true;
-        spinBtn.textContent = "⏳ Girando...";
+        spinBtn.textContent = "Girando...";
 
         const spins = Math.floor(Math.random() * 4) + 8;
         const randomAngle = Math.random() * 360;
@@ -209,7 +200,7 @@ export class QuestionModal {
         if (toggleBtn) toggleBtn.textContent = "Mostrar Ruleta";
 
         // Ensure roulette is hidden on open
-        const wrapper = document.getElementById("rouletteWrapper");
+        const wrapper = document.getElementById("rouletteGlobalWrapper");
         if (wrapper) wrapper.classList.add("hidden");
     }
 
@@ -234,11 +225,6 @@ export class QuestionModal {
             spinBtn.disabled = false;
             spinBtn.onclick = () => this.spinRoulette();
         }
-        const toggleBtn = document.getElementById("toggleRouletteBtn");
-        if (toggleBtn) toggleBtn.textContent = "Mostrar Ruleta";
-
-        const wrapper = document.getElementById("rouletteWrapper");
-        if (wrapper) wrapper.classList.add("hidden");
     }
 
     displayQuestion(categoryTitle, pointValue, questionData) {

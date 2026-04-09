@@ -127,7 +127,7 @@ export class Board {
         finalTile.innerHTML = `
             <div class="final-tile-inner">
                 <div class="final-title">⭐ RONDA RELAMPAGO</div>
-                ${!isUsed ? '<div class="final-tile-hint">Click para empezar</div>' : '<div class="final-tile-hint">Ya usada</div>'}
+                ${!isUsed ? '<div"></div>' : '<div class="final-tile-hint">Ya usada</div>'}
             </div>
         `;
     }

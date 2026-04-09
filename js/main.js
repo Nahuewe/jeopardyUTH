@@ -84,6 +84,29 @@ class JeopardyGame {
         document.getElementById('modeEditBtn').onclick = () => this.setMode('edit');
         const mainBtn = document.getElementById("mainActionsBtn");
         const menu = document.getElementById("mainActionsMenu");
+        const rouletteBtn = document.getElementById("openRouletteGlobalBtn");
+        const rouletteWrapper = document.getElementById("rouletteGlobalWrapper");
+
+        if (rouletteBtn && rouletteWrapper) {
+            rouletteBtn.onclick = () => {
+                const isHidden = rouletteWrapper.classList.contains("hidden");
+
+                rouletteWrapper.classList.toggle("hidden");
+
+                rouletteBtn.classList.toggle("active-roulette", isHidden);
+
+                if (isHidden) {
+                    this.questionModal.renderRoulette();
+
+                    const spinBtn = document.getElementById("spinRouletteBtn");
+                    if (spinBtn) {
+                        spinBtn.textContent = "Girar";
+                        spinBtn.disabled = false;
+                        spinBtn.onclick = () => this.questionModal.spinRoulette();
+                    }
+                }
+            };
+        }
 
         if (mainBtn && menu) {
             mainBtn.onclick = () => menu.classList.toggle("open");

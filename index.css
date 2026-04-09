@@ -1351,7 +1351,7 @@ textarea,
 
 .players-area {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
     gap: var(--spacing-md);
     padding-top: var(--spacing-md);
     padding-bottom: var(--spacing-lg);
@@ -1579,6 +1579,17 @@ textarea,
     opacity: 0.55;
     cursor: not-allowed;
     transform: none;
+}
+
+#openRouletteGlobalBtn {
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    color: white;
+    font-weight: 600;
+}
+
+#openRouletteGlobalBtn.active-roulette {
+    background: linear-gradient(135deg, #11977c, #22e3ac);
+    box-shadow: 0 0 10px rgba(0, 184, 148, 0.6);
 }
 
 /* ================================
