@@ -186,6 +186,7 @@ export class QuestionModal {
         this.displayQuestion(currentData.categories[col], questionData.value, questionData);
         this.updatePlayersArea();
         this.modalElement.classList.add('active');
+        document.body.classList.add('modal-open');
         this.startPresenterRotation();
         this.renderRoulette();
 
@@ -217,6 +218,7 @@ export class QuestionModal {
         this.displayQuestion(currentData.name + " — FINAL", questionData.value, questionData);
         this.updatePlayersArea();
         this.modalElement.classList.add('active');
+        document.body.classList.add('modal-open');
         this.startPresenterRotation();
         this.renderRoulette();
 
@@ -376,6 +378,7 @@ export class QuestionModal {
 
     close() {
         this.modalElement.classList.remove('active');
+        document.body.classList.remove('modal-open');
         if (this.currentTypingInterval) {
             clearInterval(this.currentTypingInterval);
             this.currentTypingInterval = null;

@@ -1051,8 +1051,13 @@ textarea,
 .editor-modal.active {
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;   /* permite que el contenido crezca hacia abajo */
     padding: var(--spacing-sm);
+    overflow-y: auto;          /* scroll del overlay si el contenido es muy alto */
+}
+
+body.modal-open {
+    overflow: hidden;
 }
 
 /* ================================
@@ -1063,15 +1068,13 @@ textarea,
     display: flex;
     gap: 25px;
     align-items: stretch;
-    /* Vuelve a stretch para altura completa */
-    height: 100%;
     background: var(--bg-secondary);
     margin: auto;
     padding: clamp(15px, 3vw, 30px);
     border-radius: var(--border-radius-xxl);
     width: min(1500px, 95%);
     max-height: 90vh;
-    overflow-y: auto;
+    overflow-y: auto;      /* scroll DENTRO del modal */
     box-shadow: var(--shadow-lg);
 }
 
@@ -1165,38 +1168,62 @@ textarea,
     flex: 0 0 400px;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start; /* mejor balance visual */
+    padding-top: 85px;
+
     min-height: 100%;
     position: sticky;
     top: 0;
     z-index: 10;
 }
 
+/* Glow de fondo */
+.presenter-container::after {
+    content: "";
+    position: absolute;
+    width: 260px;
+    height: 260px;
+    background: radial-gradient(circle, rgba(168,85,247,0.25), transparent 70%);
+    filter: blur(40px);
+    z-index: -1;
+}
+
+/* Imagen principal */
 .presenter-img {
     width: 100%;
     max-width: 380px;
-    background: transparent;
-    /* ← clave */
-    border-radius: 26px;
-    border: 6px solid #2a2a2a;
-    box-shadow:
-        0 15px 40px rgba(0, 0, 0, .5),
-        inset 0 0 0 2px rgba(255, 255, 255, .15);
+    height: 600px;
     object-fit: contain;
+
+    border-radius: 26px;
+    border: 2px solid rgba(255,255,255,0.08);
+
+    background: radial-gradient(
+        circle at 50% 30%,
+        rgba(255,255,255,0.05),
+        rgba(0,0,0,0.4)
+    );
+
+    box-shadow:
+        0 20px 60px rgba(0,0,0,0.6),
+        0 0 40px rgba(168, 85, 247, 0.15);
+
+    animation:
+        slideInPresenter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+        idleFloat 4s ease-in-out infinite;
+
+    transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-/* .presenter-img:hover {
-    transform: scale(1.05) translateY(-8px) rotate(1deg);
-    border-color: rgba(236, 72, 153, 0.5);
+/* Hover más sutil */
+.presenter-img:hover {
+    transform: scale(1.03) translateY(-4px);
     box-shadow:
-        0 35px 80px rgba(0, 0, 0, 0.5),
-        0 0 70px rgba(236, 72, 153, 0.5),
-        inset 0 2px 15px rgba(255, 255, 255, 0.6),
-        inset 0 -2px 15px rgba(236, 72, 153, 0.2);
-    filter:
-        drop-shadow(0 15px 40px rgba(236, 72, 153, 0.4)) brightness(1.05);
-} */
+        0 30px 80px rgba(0,0,0,0.7),
+        0 0 60px rgba(168, 85, 247, 0.3);
+}
 
+/* Animación de entrada */
 @keyframes slideInPresenter {
     from {
         opacity: 0;
@@ -1209,13 +1236,22 @@ textarea,
     }
 }
 
-.presenter-img {
-    animation: slideInPresenter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    transition: opacity 0.2s ease;
+/* Animación idle (flotación leve) */
+@keyframes idleFloat {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-6px); }
+    100% { transform: translateY(0px); }
 }
 
+/* Fade cuando cambia */
 .presenter-fade {
     opacity: 0 !important;
+}
+
+/* Estado opcional: hablando */
+.presenter-speaking {
+    filter: brightness(1.1);
+    transform: scale(1.02);
 }
 
 /* ================================
