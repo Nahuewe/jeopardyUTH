@@ -113,11 +113,71 @@ export class TeamManager {
     }
 
     edit(index) {
+        const team = this.gameState.teams[index];
+        const availablePlayers = this.gameState.players;
+
+        const membersHTML = availablePlayers.map(player => {
+            const checked = team.members.includes(player.name) ? 'checked' : '';
+            return `
+                <label class="player-selection-item" style="--player-color: ${player.color};">
+                    <input type="checkbox" name="editMember" value="${player.name}" ${checked} class="hidden-checkbox">
+                    <span class="player-badge">${player.name}</span>
+                </label>`;
+        }).join('');
+
         Swal.fire({
-            icon: 'info',
-            title: 'Funcionalidad de Edición',
-            text: 'La edición de equipos (miembros, nombre, color) se implementará aquí.',
-            confirmButtonColor: '#5865f2'
+            title: "Editar Equipo",
+            html: `
+                <input id="editTeamName" class="swal2-input" placeholder="Nombre del equipo" value="${team.name}">
+                <input id="editTeamColor" type="color" value="${team.color}"
+                       style="width: 100%; height: 50px; border-radius: 8px; cursor: pointer; margin-top:10px;">
+                <label style="margin-top:10px; font-weight:bold; display:block; text-align:left;">Puntos:</label>
+                <input id="editTeamScore" type="number" class="swal2-input" value="${team.score}" min="-999999" step="1">
+                <div style="text-align: left; margin-top: 15px; border-top: 1px solid #36393f; padding-top: 10px;">
+                    <strong>Miembros:</strong>
+                    <div style="max-height: 200px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                        ${membersHTML}
+                    </div>
+                </div>
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: "Guardar",
+            cancelButtonText: "Cancelar",
+            confirmButtonColor: "#27ae60",
+            preConfirm: () => {
+                const name = document.getElementById("editTeamName").value.trim();
+                const color = document.getElementById("editTeamColor").value;
+                const score = parseInt(document.getElementById("editTeamScore").value) || 0;
+                const members = Array.from(
+                    document.querySelectorAll("input[name='editMember']:checked")
+                ).map(el => el.value);
+
+                if (!name) {
+                    Swal.showValidationMessage("El equipo necesita un nombre.");
+                    return false;
+                }
+                if (members.length < 1) {
+                    Swal.showValidationMessage("Selecciona al menos un miembro.");
+                    return false;
+                }
+                return { name, color, score, members };
+            }
+        }).then(result => {
+            if (result.isConfirmed) {
+                team.name = result.value.name;
+                team.color = result.value.color;
+                team.score = result.value.score;
+                team.members = result.value.members;
+                Storage.saveTeams(this.gameState.teams);
+                this.scoreboard.render();
+                Swal.fire({
+                    icon: "success",
+                    title: "Equipo editado",
+                    text: "Los cambios fueron aplicados correctamente.",
+                    confirmButtonColor: "#27ae60"
+                });
+            }
         });
     }
 

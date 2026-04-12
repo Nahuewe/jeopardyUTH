@@ -108,7 +108,7 @@ textarea,
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: var(--accent-blue);
+    background-color: var(--mode-color);
     border-radius: var(--border-radius-md);
 }
 
@@ -321,7 +321,7 @@ textarea,
 
 .scoreboard {
     display: grid;
-    grid-template-columns: repeat(4, 1fr); /* máximo 4 por fila */
+    grid-template-columns: repeat(4, 1fr);
     gap: var(--spacing-lg);
     margin-bottom: var(--spacing-xxl);
 }
@@ -825,6 +825,7 @@ textarea,
     border: 2px solid rgba(225, 177, 44, 0.4);
     border-radius: var(--border-radius-xl);
     margin: 0 auto;
+    margin-top: 18px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -3192,4 +3193,34 @@ body.modal-open {
     .scoreboard {
         grid-template-columns: repeat(2, 1fr);
     }
+}
+
+/* ================================
+   TEAM AVATARS APILADOS
+================================ */
+
+.team-avatars-row {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.team-member-mini {
+    width: 52px !important;
+    height: 52px !important;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid;
+    transition: transform 0.2s;
+}
+
+.team-member-mini:hover {
+    transform: scale(1.1);
+    z-index: 1;
+}
+
+.scoreboard-team-avatars .team-member-mini {
+    width: 64px !important;
+    height: 64px !important;
 }

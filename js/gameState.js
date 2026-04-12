@@ -96,15 +96,21 @@ export class GameState {
         }
 
         const panel = document.querySelector('.mode-controls-panel');
-        if (!panel) return;
-
-        panel.querySelectorAll('#modeGameBtn, #modeEditBtn').forEach(b => {
-            b.style.display = this.uiHidden ? 'none' : 'inline-block';
-        });
+        if (panel) {
+            panel.querySelectorAll('#modeGameBtn, #modeEditBtn').forEach(b => {
+                b.style.display = this.uiHidden ? 'none' : 'inline-block';
+            });
+            panel.style.marginBottom = this.uiHidden ? '0' : '';
+        }
 
         const musicBtn = document.getElementById('musicBtn');
         if (musicBtn) {
             musicBtn.style.display = this.uiHidden ? 'none' : 'inline-block';
+        }
+
+        const header = document.querySelector('.header');
+        if (header) {
+            header.style.display = this.uiHidden ? 'none' : 'block';
         }
     }
 }

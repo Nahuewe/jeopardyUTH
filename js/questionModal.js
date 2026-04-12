@@ -120,6 +120,7 @@ export class QuestionModal {
 
         if (this.tickAudio) {
             this.tickAudio.currentTime = 0;
+            this.tickAudio.volume = 0.1;
             this.tickAudio.play().catch(() => { });
         }
 
@@ -347,7 +348,19 @@ export class QuestionModal {
             : `window.game.pointsManager.deductPlayer(${index}, ${points})`;
 
         const defaultAvatar = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="%237f8c8d" d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3c0 16.2 13.1 29.7 30 29.7H418c16.9 0 30-13.5 30-29.7C448 383.8 368.2 304 269.7 304H178.3z"/></svg>`;
-        const avatarSrc = (!isTeamMode && scorable.avatar) ? scorable.avatar : defaultAvatar;
+
+        let avatarHTML;
+        if (isTeamMode && scorable.members && scorable.members.length > 0) {
+            const memberAvatars = scorable.members.map(memberName => {
+                const player = this.gameState.players.find(p => p.name === memberName);
+                const src = (player && player.avatar) ? player.avatar : defaultAvatar;
+                return `<img src="${src}" alt="${memberName}" class="player-avatar team-member-mini" style="border-color:${scorable.color};" title="${memberName}">`;
+            }).join('');
+            avatarHTML = `<div class="team-avatars-row">${memberAvatars}</div>`;
+        } else {
+            const avatarSrc = scorable.avatar ? scorable.avatar : defaultAvatar;
+            avatarHTML = `<img src="${avatarSrc}" alt="${scorable.name}" class="player-avatar" style="border-color:${scorable.color};">`;
+        }
 
         const scoreDisplay = scorable.score < 0
             ? `-$${Math.abs(scorable.score)}`
@@ -355,7 +368,7 @@ export class QuestionModal {
 
         return `
             <div class="player-info" style="border-top-color: ${scorable.color}; --p-color: ${scorable.color};">
-                <img src="${avatarSrc}" alt="${scorable.name}" class="player-avatar" style="border-color:${scorable.color};">
+                ${avatarHTML}
                 <span class="player-name">${scorable.name}</span>
                 <span class="player-score" style="color: ${scorable.score < 0 ? 'var(--danger-red)' : 'var(--success-green)'};">${scoreDisplay}</span>
                 <div class="player-btn-group">
@@ -368,6 +381,14 @@ export class QuestionModal {
                 </div>
             </div>
         `;
+    }
+
+    lockButtons() {
+        document.querySelectorAll('#playersArea .player-add, #playersArea .player-deduct').forEach(btn => {
+            btn.disabled = true;
+            btn.style.opacity = '0.4';
+            btn.style.cursor = 'not-allowed';
+        });
     }
 
     showAnswer() {

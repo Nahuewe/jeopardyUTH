@@ -23,6 +23,7 @@ export class PointsManager {
         window.game.questionModal.updatePlayersArea();
         Utils.toast(`✅ +$${finalPoints} → ${player.name}`, 'success');
         window.game.questionModal.showCorrectAnimation();
+        window.game.questionModal.lockButtons();
     }
 
     deductPlayer(playerIndex, points) {
@@ -61,6 +62,8 @@ export class PointsManager {
         window.game.questionModal.updatePlayersArea();
         Utils.toast(`✅ +$${finalPoints} → ${team.name}`, 'success');
         Storage.saveTeams(this.gameState.teams);
+        window.game.questionModal.showCorrectAnimation();
+        window.game.questionModal.lockButtons();
     }
 
     deductTeam(teamIndex, points) {

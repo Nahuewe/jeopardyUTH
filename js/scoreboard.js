@@ -75,12 +75,23 @@ export class Scoreboard {
             : `<span class="player-rank">#${rank + 1}</span>`;
 
         const detailsHTML = isTeamMode
-            ? `<p class="team-members">👥 ${scorable.members.join(' · ')}</p>`
+            ? `<p class="team-members">${scorable.members.join(' · ')}</p>`
             : '';
 
         const defaultAvatar = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="%237f8c8d" d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3c0 16.2 13.1 29.7 30 29.7H418c16.9 0 30-13.5 30-29.7C448 383.8 368.2 304 269.7 304H178.3z"/></svg>`;
 
-        const avatarSrc = (!isTeamMode && scorable.avatar) ? scorable.avatar : defaultAvatar;
+        let avatarWrapHTML;
+        if (isTeamMode && scorable.members && scorable.members.length > 0) {
+            const memberAvatars = scorable.members.map(memberName => {
+                const player = this.gameState.players.find(p => p.name === memberName);
+                const src = (player && player.avatar) ? player.avatar : defaultAvatar;
+                return `<img src="${src}" alt="${memberName}" class="scoreboard-avatar team-member-mini" style="border-color:${scorable.color};" title="${memberName}">`;
+            }).join('');
+            avatarWrapHTML = `<div class="team-avatars-row scoreboard-team-avatars">${memberAvatars}</div>`;
+        } else {
+            const avatarSrc = scorable.avatar ? scorable.avatar : defaultAvatar;
+            avatarWrapHTML = `<img src="${avatarSrc}" alt="${scorable.name}" class="scoreboard-avatar" style="border-color:${scorable.color};">`;
+        }
 
         const editAction = isTeamMode
             ? `window.game.teamManager.edit(${index})`
@@ -107,7 +118,7 @@ export class Scoreboard {
         <div class="player-card-top">
             ${medalHTML}
             <div class="player-card-avatar-wrap">
-                <img src="${avatarSrc}" alt="${scorable.name}" class="scoreboard-avatar" style="border-color:${scorable.color};">
+                ${avatarWrapHTML}
             </div>
         </div>
         <h3 class="player-card-name" title="${scorable.name}">${scorable.name}</h3>
