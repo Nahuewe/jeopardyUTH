@@ -20,6 +20,7 @@ export class PointsManager {
 
         this.markQuestionAsUsed(col, row, usedOptions);
         this.completeAward();
+        window.game.questionModal.updatePlayersArea();
         Utils.toast(`✅ +$${finalPoints} → ${player.name}`, 'success');
         window.game.questionModal.showCorrectAnimation();
     }
@@ -41,6 +42,7 @@ export class PointsManager {
             if (result.isConfirmed) {
                 player.score -= points;
                 Storage.savePlayers(this.gameState.players);
+                window.game.questionModal.updatePlayersArea();
                 window.game.questionModal.showIncorrectAnimation();
                 this.scoreboard.render();
                 Utils.playDeductionEffects();
@@ -56,6 +58,7 @@ export class PointsManager {
 
         this.markQuestionAsUsed(col, row, usedOptions);
         this.completeAward();
+        window.game.questionModal.updatePlayersArea();
         Utils.toast(`✅ +$${finalPoints} → ${team.name}`, 'success');
         Storage.saveTeams(this.gameState.teams);
     }
@@ -77,6 +80,7 @@ export class PointsManager {
             if (result.isConfirmed) {
                 team.score -= points;
                 Storage.saveTeams(this.gameState.teams);
+                window.game.questionModal.updatePlayersArea();
                 window.game.questionModal.showIncorrectAnimation();
                 this.scoreboard.render();
                 Utils.playDeductionEffects();
