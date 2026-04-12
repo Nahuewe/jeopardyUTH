@@ -640,6 +640,7 @@ textarea,
 .controls-panel {
     text-align: center;
     margin-bottom: var(--spacing-xl);
+    margin-top: var(--spacing-xl);
 }
 
 .dropdown {
