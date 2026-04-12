@@ -19,6 +19,12 @@ export class QuestionModal {
         this.lastTickIndex = null;
         this.tickAudio = document.getElementById("rouletteTick");
 
+        // Timer
+        this.timerInterval = null;
+        this.timerSeconds = 0;
+        this.timerCurrent = 0;
+        this.timerPaused = false;
+
         this.setupEventListeners();
 
         this.presenterImg = document.querySelector('.presenter-img');
@@ -253,6 +259,7 @@ export class QuestionModal {
         document.getElementById('answerText').textContent = questionData.answer || '';
         document.getElementById('answerText').classList.remove('show');
         this.setupMultipleChoice(questionData);
+        this.setupTimer(questionData.timer || 0);
     }
 
     setupMultipleChoice(questionData) {
@@ -328,7 +335,7 @@ export class QuestionModal {
 
         const sorted = [...scorables]
             .map((s, i) => ({ ...s, _original: i }))
-            .sort((a, b) => b.score - a.score);
+            .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
 
         playersArea.innerHTML = sorted.map(s =>
             this.createPlayerButtons(s, s._original, isTeamMode)
@@ -397,6 +404,137 @@ export class QuestionModal {
         el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
+    setupTimer(seconds) {
+        this.stopTimer();
+        this.timerSeconds = seconds;
+        this.timerCurrent = seconds;
+        this.timerPaused = false;
+
+        // Pre-fill the config input with the question's configured timer
+        const configInput = document.getElementById('timerConfigInput');
+        if (configInput) configInput.value = seconds || 0;
+
+        const wrapper = document.getElementById('questionTimerWrapper');
+        const display = document.getElementById('questionTimerDisplay');
+        const fill = document.getElementById('questionTimerFill');
+        const startBtn = document.getElementById('timerStartBtn');
+        const pauseBtn = document.getElementById('timerPauseBtn');
+
+        if (!seconds || seconds <= 0) {
+            wrapper.style.display = 'none';
+            return;
+        }
+
+        wrapper.style.display = 'flex';
+        display.textContent = seconds;
+        fill.style.width = '100%';
+        fill.style.backgroundColor = 'var(--timer-green, #43b581)';
+        startBtn.textContent = '▶ Iniciar';
+        startBtn.style.display = '';
+        pauseBtn.style.display = 'none';
+        wrapper.classList.remove('timer-expired');
+    }
+
+    applyTimerConfig() {
+        const input = document.getElementById('timerConfigInput');
+        const secs = parseInt(input.value) || 0;
+        this.setupTimer(secs);
+    }
+
+    disableTimer() {
+        this.stopTimer();
+        const wrapper = document.getElementById('questionTimerWrapper');
+        wrapper.style.display = 'none';
+        const configInput = document.getElementById('timerConfigInput');
+        if (configInput) configInput.value = 0;
+    }
+
+    startTimer() {
+        if (this.timerInterval) return;
+        const display = document.getElementById('questionTimerDisplay');
+        const fill = document.getElementById('questionTimerFill');
+        const startBtn = document.getElementById('timerStartBtn');
+        const pauseBtn = document.getElementById('timerPauseBtn');
+
+        startBtn.style.display = 'none';
+        pauseBtn.style.display = '';
+
+        this.timerInterval = setInterval(() => {
+            this.timerCurrent--;
+            if (this.timerCurrent < 0) this.timerCurrent = 0;
+
+            display.textContent = this.timerCurrent;
+            const pct = (this.timerCurrent / this.timerSeconds) * 100;
+            fill.style.width = pct + '%';
+
+            if (pct > 50) fill.style.backgroundColor = 'var(--timer-green, #43b581)';
+            else if (pct > 20) fill.style.backgroundColor = 'var(--timer-yellow, #faa61a)';
+            else fill.style.backgroundColor = 'var(--timer-red, #f04747)';
+
+            if (this.timerCurrent <= 0) {
+                this.stopTimer();
+                startBtn.style.display = 'none';
+                pauseBtn.style.display = 'none';
+                display.textContent = '⏰';
+                fill.style.width = '0%';
+                fill.style.backgroundColor = 'var(--timer-red, #f04747)';
+                document.getElementById('questionTimerWrapper').classList.add('timer-expired');
+            }
+        }, 1000);
+    }
+
+    pauseTimer() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+        const startBtn = document.getElementById('timerStartBtn');
+        const pauseBtn = document.getElementById('timerPauseBtn');
+        startBtn.textContent = '▶ Reanudar';
+        startBtn.style.display = '';
+        pauseBtn.style.display = 'none';
+    }
+
+    resetTimer() {
+        this.stopTimer();
+        this.timerCurrent = this.timerSeconds;
+        const display = document.getElementById('questionTimerDisplay');
+        const fill = document.getElementById('questionTimerFill');
+        const startBtn = document.getElementById('timerStartBtn');
+        const pauseBtn = document.getElementById('timerPauseBtn');
+        const wrapper = document.getElementById('questionTimerWrapper');
+
+        display.textContent = this.timerSeconds;
+        fill.style.width = '100%';
+        fill.style.backgroundColor = 'var(--timer-green, #43b581)';
+        startBtn.textContent = '▶ Iniciar';
+        startBtn.style.display = '';
+        pauseBtn.style.display = 'none';
+        wrapper.classList.remove('timer-expired');
+    }
+
+    stopTimer() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+    }
+
+    finishQuestion() {
+        const { col, row } = this.currentQuestionLocation;
+        // Mark as used if not already (in case no points were awarded)
+        const currentData = this.gameState.getCurrentRoundData();
+        if (col === -1) {
+            if (currentData.finalQuestion) currentData.finalQuestion.used = true;
+        } else {
+            if (currentData.questions[col] && currentData.questions[col][row]) {
+                currentData.questions[col][row].used = true;
+            }
+        }
+        window.game.pointsManager.completeAward();
+        this.showCorrectAnimation();
+    }
+
     close() {
         this.modalElement.classList.remove('active');
         document.body.classList.remove('modal-open');
@@ -404,6 +542,7 @@ export class QuestionModal {
             clearInterval(this.currentTypingInterval);
             this.currentTypingInterval = null;
         }
+        this.stopTimer();
         document.querySelectorAll("#modal video, #modal audio").forEach(el => {
             el.pause();
             el.currentTime = 0;

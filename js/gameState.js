@@ -103,11 +103,6 @@ export class GameState {
             panel.style.marginBottom = this.uiHidden ? '0' : '';
         }
 
-        const musicBtn = document.getElementById('musicBtn');
-        if (musicBtn) {
-            musicBtn.style.display = this.uiHidden ? 'none' : 'inline-block';
-        }
-
         const header = document.querySelector('.header');
         if (header) {
             header.style.display = this.uiHidden ? 'none' : 'block';

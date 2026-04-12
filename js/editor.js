@@ -88,6 +88,11 @@ export class Editor {
                 <textarea onchange="window.game.editor.updateQuestion(${catIndex}, ${qIndex}, 'answer', this.value)">${question.answer || ''}</textarea>
                 <label>Opciones Múltiple:</label>
                 <textarea onchange="window.game.editor.updateQuestion(${catIndex}, ${qIndex}, 'multipleChoice', this.value)"placeholder="Ej: a) Opción 1 / b) Opción 2 / c) Opción 3 (Separar con barras '/')">${question.multipleChoice || ''}</textarea>
+                <label>⏱️ Timer (segundos, 0 = sin timer):</label>
+                <input type="number" value="${question.timer || 0}"
+                    onchange="window.game.editor.updateQuestion(${catIndex}, ${qIndex}, 'timer', parseInt(this.value) || 0)"
+                    min="0" max="600" step="5" placeholder="0"
+                    style="width:120px; padding:6px 10px; border-radius:6px; background:var(--bg-dark,#1e2024); border:1px solid var(--border,#40444b); color:var(--text-primary,#dcddde);">
                 ${this.createMediaSection(question, catIndex, qIndex, 'media1')}
                 ${this.createMediaSection(question, catIndex, qIndex, 'media2')}
             </div>
