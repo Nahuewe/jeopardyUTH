@@ -9,7 +9,6 @@ import { MediaStore } from './media.js';
 import { Effects } from './effects.js';
 
 const $ = (id) => document.getElementById(id);
-const SPIN_MS = 8500;
 const PRESENTER_IMAGES = ['./images/leyendo.png', './images/tirarCarta.png', './images/presentando.png'];
 
 export class QuestionModal {
@@ -34,10 +33,6 @@ export class QuestionModal {
         this.presenterTimer = null;
         this.timeouts = new Set();
         this.playersSig = '';
-        this.wheelSig = '';
-        this.rouletteNonce = -1;
-        this.pointerRaf = null;
-        this.lastTick = null;
 
         live.on('change', (d) => this.render(d));
         state.on('change', () => this.render(live.data));
@@ -105,6 +100,7 @@ export class QuestionModal {
         const q = l.q;
         const visible = l.screen === 'question' && q;
         this.el.classList.toggle('active', !!visible);
+        document.body.classList.toggle('modal-open', !!visible);
         if (!visible) return this.#teardown();
 
         const round = this.state.roundById(q.roundId);
@@ -127,7 +123,6 @@ export class QuestionModal {
         this.#renderBanner(q, round);
         this.#renderPlayers(q, round);
         this.#renderTimer();
-        this.#renderRoulette(l.roulette, round);
         this.#updatePresenter(q.mood || 'reading');
         this.#renderAdminControls(q, data);
     }
@@ -155,7 +150,6 @@ export class QuestionModal {
         this.#stopPresenter();
         this.presenterMood = null;
         this.el.querySelectorAll('audio, video').forEach(m => { m.pause(); });
-        cancelAnimationFrame(this.pointerRaf);
     }
 
     /* ---------- Pregunta ---------- */
@@ -178,7 +172,7 @@ export class QuestionModal {
                 const cur = this.live.data;
                 // Terminó de leerse la pregunta: se habilitan los buzzers remotos.
                 if (this.admin && cur.q?.key === q.key && !cur.q.buzzOpen && !cur.q.result) this.live.patchQ({ buzzOpen: true });
-                if (this.admin && this.state.settings.timerEnabled && this.state.settings.autoTimer
+                if (this.admin && !cur.q?.timerOff && this.state.settings.autoTimer
                     && !cur.timer && cur.q?.key === q.key && !cur.q.result) {
                     this.startTimer();
                 }
@@ -318,14 +312,19 @@ export class QuestionModal {
 
         const teamMode = this.state.isTeamRound(round);
         const all = this.state.participants(round);
-        const sorted = [...list].sort((a, b) => b.score - a.score);
+        const sorted = [...list].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
         area.innerHTML = sorted.map(p => this.#playerCard(p, q, teamMode, all.findIndex(x => x.id === p.id))).join('');
     }
 
     #playerCard(p, q, teamMode, index) {
         const locked = q.lockedOut.includes(p.id);
         const buzzed = q.buzzedId === p.id || (!q.buzzedId && q.responderId === p.id);
-        const avatar = (!teamMode && p.avatar) ? p.avatar : DEFAULT_AVATAR;
+        const avatarHTML = teamMode
+            ? `<div class="team-avatars-row">${this.state.memberNames(p).map((name, i) => {
+                const member = this.state.players.find(x => x.id === p.memberIds[i]);
+                return `<img src="${esc(member?.avatar || DEFAULT_AVATAR)}" alt="${esc(name)}" title="${esc(name)}" class="player-avatar team-member-mini" style="border-color:${esc(p.color)};">`;
+            }).join('')}</div>`
+            : `<img src="${esc(p.avatar || DEFAULT_AVATAR)}" alt="${esc(p.name)}" class="player-avatar" style="border-color:${esc(p.color)};">`;
         const done = !!q.result;
         const deduct = this.state.settings.deductOnWrong;
 
@@ -343,7 +342,7 @@ export class QuestionModal {
         return `
             <div class="player-info ${buzzed ? 'is-responder' : ''} ${locked ? 'locked-out' : ''}" style="border-top-color:${esc(p.color)};--p-color:${esc(p.color)};">
                 ${key}
-                <img src="${esc(avatar)}" alt="${esc(p.name)}" class="player-avatar" style="border-color:${esc(p.color)};">
+                ${avatarHTML}
                 <span class="player-name">${esc(p.name)}</span>
                 <span class="player-score" style="color:${p.score < 0 ? 'var(--danger-red)' : 'var(--success-green)'};">${Utils.formatScore(p.score)}</span>
                 ${status}
@@ -360,8 +359,13 @@ export class QuestionModal {
 
         const t = this.live.data.timer;
         const btn = $('btnTimerToggle');
-        btn.style.display = this.state.settings.timerEnabled ? '' : 'none';
-        $('btnTimerReset').style.display = this.state.settings.timerEnabled ? '' : 'none';
+        btn.style.display = q.timerOff ? 'none' : '';
+        $('btnTimerReset').style.display = q.timerOff ? 'none' : '';
+        const cfg = $('timerConfigInput');
+        if (cfg && document.activeElement !== cfg && cfg.dataset.key !== q.key + q.timerSeconds) {
+            cfg.value = q.timerOff ? 0 : q.timerSeconds;
+            cfg.dataset.key = q.key + q.timerSeconds;
+        }
         btn.textContent = !t || t.finished ? '⏱ Iniciar timer' : t.running ? '⏸ Pausar timer' : '▶ Reanudar timer';
 
         const adminAnswer = $('adminAnswer');
@@ -371,9 +375,6 @@ export class QuestionModal {
         const bz = $('btnBuzzOpen');
         bz.style.display = this.live.data.buzzerOn && q.phase === 'open' && !q.dd ? '' : 'none';
         bz.textContent = q.buzzOpen ? '🔕 Cerrar buzzers' : '🔔 Abrir buzzers';
-        $('toggleRouletteBtn').textContent = this.live.data.roulette.visible ? 'Ocultar Ruleta' : 'Mostrar Ruleta';
-        $('spinRouletteBtn').disabled = this.live.data.roulette.spinning;
-        $('spinRouletteBtn').textContent = this.live.data.roulette.spinning ? '⏳ Girando…' : '🎰 Elegir quién juega';
     }
 
     /* ---------- Presentadora ---------- */
@@ -410,7 +411,7 @@ export class QuestionModal {
     #renderTimer() {
         const box = $('timerBox');
         const t = this.live.data.timer;
-        box.classList.toggle('show', !!t && this.state.settings.timerEnabled);
+        box.classList.toggle('show', !!t && !this.live.data.q?.timerOff);
         this.#tickTimer();
     }
 
@@ -435,7 +436,7 @@ export class QuestionModal {
 
     startTimer() {
         const t = this.live.data.timer;
-        const dur = this.state.settings.timerSeconds * 1000;
+        const dur = (this.live.data.q?.timerSeconds || this.state.settings.timerSeconds) * 1000;
         if (!t || t.finished) {
             this.live.set({ timer: { durationMs: dur, remainingMs: dur, endsAt: Date.now() + dur, running: true, finished: false } });
         } else if (!t.running) {
@@ -458,104 +459,18 @@ export class QuestionModal {
         this.live.set({ timer: null });
     }
 
-    /* ---------- Ruleta ---------- */
-
-    #renderRoulette(r, round) {
-        const wrapper = $('rouletteWrapper');
-        wrapper.classList.toggle('hidden', !r.visible);
-
-        const list = this.state.participants(round);
-        const sig = list.map(p => `${p.id}|${p.name}|${p.color}`).join(';');
-        const wheel = $('rouletteWheel');
-
-        if (sig !== this.wheelSig && !r.spinning) {
-            this.wheelSig = sig;
-            this.#buildWheel(wheel, list);
-        }
-
-        if (r.nonce !== this.rouletteNonce) {
-            this.rouletteNonce = r.nonce;
-            if (r.spinning) {
-                wheel.style.transition = `transform ${r.durationMs}ms cubic-bezier(0.17, 0.67, 0.12, 1)`;
-                wheel.style.transform = `rotate(${r.angle}deg)`;
-                this.#startPointerLoop(wheel, list.length);
-            } else {
-                wheel.style.transition = 'none';
-                wheel.style.transform = `rotate(${r.angle}deg)`;
-            }
-        }
-
-        wheel.querySelectorAll('.roulette-label').forEach(label => {
-            label.classList.toggle('winner', !!r.selectedId && label.dataset.id === r.selectedId);
-        });
+    /** Timer manual de esta pregunta (campo "Timer" del modal). */
+    setTimerConfig() {
+        const secs = parseInt($('timerConfigInput').value, 10) || 0;
+        if (secs <= 0) return this.disableTimer();
+        this.live.patchQ({ timerSeconds: secs, timerOff: false });
+        this.resetTimer();
+        if (this.typedKey === this.key) this.startTimer();
     }
 
-    #buildWheel(wheel, list) {
-        wheel.innerHTML = '';
-        if (!list.length) { wheel.style.background = ''; return; }
-        const slice = 360 / list.length;
-        wheel.style.background = `conic-gradient(${list.map((p, i) => `${p.color}55 ${i * slice}deg ${(i + 1) * slice}deg`).join(',')})`;
-
-        list.forEach((p, i) => {
-            const label = document.createElement('div');
-            label.className = 'roulette-label';
-            label.dataset.id = p.id;
-            label.textContent = p.name;
-            const angleDeg = slice * i + slice / 2;
-            const rad = (angleDeg - 90) * Math.PI / 180;
-            const r = 0.55 * 50;
-            label.style.cssText = `position:absolute;left:${50 + r * Math.cos(rad)}%;top:${50 + r * Math.sin(rad)}%;transform:translate(-50%,-50%) rotate(${angleDeg}deg);`;
-            label.style.setProperty('--label-color', p.color || '#fff');
-            wheel.appendChild(label);
-        });
-    }
-
-    #startPointerLoop(wheel, n) {
-        cancelAnimationFrame(this.pointerRaf);
-        if (!n) return;
-        const slice = 360 / n;
-        const pointer = document.querySelector('.roulette-pointer');
-        this.lastTick = null;
-        const loop = () => {
-            const m = new DOMMatrix(getComputedStyle(wheel).transform);
-            const angle = (Math.atan2(m.b, m.a) * 180 / Math.PI + 360) % 360;
-            const idx = Math.floor(((360 - angle) % 360) / slice) % n;
-            if (idx !== this.lastTick) {
-                this.lastTick = idx;
-                pointer?.classList.remove('hit');
-                void pointer?.offsetWidth;
-                pointer?.classList.add('hit');
-            }
-            if (this.live.data.roulette.spinning) this.pointerRaf = requestAnimationFrame(loop);
-        };
-        loop();
-    }
-
-    toggleRoulette() {
-        this.live.patchRoulette({ visible: !this.live.data.roulette.visible });
-    }
-
-    spin() {
-        const q = this.live.data.q;
-        const r = this.live.data.roulette;
-        if (!q || r.spinning) return;
-        const all = this.state.participants(this.state.roundById(q.roundId));
-        if (!all.length) return;
-
-        const slice = 360 / all.length;
-        const target = r.angle + (8 + Math.floor(Math.random() * 4)) * 360 + Math.random() * 360;
-        const final = ((target % 360) + 360) % 360;
-        const idx = Math.floor(((360 - final) % 360) / slice) % all.length;
-        const winner = all[idx];
-
-        this.live.patchRoulette({ visible: true, spinning: true, angle: target, durationMs: SPIN_MS, nonce: r.nonce + 1, selectedId: null });
-        Effects.sound('roulette');
-
-        this.#later(() => {
-            this.live.patchRoulette({ spinning: false, selectedId: winner.id });
-            if (this.live.data.q && !this.live.data.q.dd) this.live.patchQ({ responderId: winner.id });
-            Effects.toast(`🎯 Le toca a ${winner.name}`, 'success');
-        }, SPIN_MS);
+    disableTimer() {
+        this.live.patchQ({ timerOff: true });
+        this.resetTimer();
     }
 
     /* =========================================================
@@ -591,6 +506,8 @@ export class QuestionModal {
             q: {
                 key: uid(), roundId: round.id, col, row,
                 dd, phase: dd ? 'bet' : 'open',
+                timerSeconds: data.timer > 0 ? data.timer : this.state.settings.timerSeconds,
+                timerOff: !this.state.settings.timerEnabled,
                 points: data.value, bet: null,
                 optionsShown: false, answerShown: false,
                 mediaRevealed: [false, false],
@@ -656,7 +573,7 @@ export class QuestionModal {
         this.scoring.award(pid, q.points, this.#ctx(q));
         this.pauseTimer();
         this.live.patchQ({ result: { type: 'correct', pid }, mood: 'correct', answerShown: true, buzzedId: pid, responderId: pid });
-        this.#later(() => this.close(), 4000);
+        if (this.state.settings.autoCloseOnCorrect) this.#later(() => this.close(), 4000);
     }
 
     wrong(pid) {
@@ -680,7 +597,7 @@ export class QuestionModal {
             if (this.live.data.q?.key === q.key && !this.live.data.q.result) this.live.patchQ({ mood: 'reading' });
         }, 4000);
 
-        if (this.state.settings.timerEnabled && this.live.data.timer) {
+        if (!this.live.data.q.timerOff && this.live.data.timer) {
             this.resetTimer();
             if (this.state.settings.autoTimer) this.startTimer();
         }
@@ -689,7 +606,8 @@ export class QuestionModal {
     /** Nadie acertó: se marca como usada y se muestra la respuesta. */
     unanswered() {
         const q = this.live.data.q;
-        if (!q || q.result || q.phase === 'bet') return;
+        if (!q || q.phase === 'bet') return;
+        if (q.result) return this.close(); // ya resuelta: "Terminar" solo cierra
         this.scoring.markUnanswered(this.#ctx(q));
         this.pauseTimer();
         this.live.patchQ({ result: { type: 'none' }, answerShown: true });

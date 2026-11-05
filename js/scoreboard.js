@@ -79,8 +79,13 @@ export class Scoreboard {
             : `<span class="player-rank">#${rank + 1}</span>`;
 
         const members = teamMode
-            ? `<p class="team-members">👥 ${esc(s.memberNames(p).join(' · '))}</p>` : '';
-        const avatar = (!teamMode && p.avatar) ? p.avatar : DEFAULT_AVATAR;
+            ? `<p class="team-members">${esc(s.memberNames(p).join(' · '))}</p>` : '';
+        const avatarHTML = teamMode && p.memberIds?.length
+            ? `<div class="team-avatars-row scoreboard-team-avatars">${p.memberIds.map(id => {
+                const m = s.players.find(x => x.id === id);
+                return m ? `<img src="${esc(m.avatar || DEFAULT_AVATAR)}" alt="${esc(m.name)}" title="${esc(m.name)}" class="scoreboard-avatar team-member-mini" style="border-color:${esc(p.color)};">` : '';
+            }).join('')}</div>`
+            : `<img src="${esc(p.avatar || DEFAULT_AVATAR)}" alt="${esc(p.name)}" class="scoreboard-avatar" style="border-color:${esc(p.color)};">`;
 
         const showControls = this.role === 'admin' && !s.uiHidden;
         const kind = teamMode ? 'team' : 'player';
@@ -97,7 +102,7 @@ export class Scoreboard {
             <div class="player-card-top">
                 ${medal}
                 <div class="player-card-avatar-wrap">
-                    <img src="${esc(avatar)}" alt="${esc(p.name)}" class="scoreboard-avatar" style="border-color:${esc(p.color)};">
+                    ${avatarHTML}
                 </div>
             </div>
             <h3 class="player-card-name" title="${esc(p.name)}">${esc(p.name)}</h3>

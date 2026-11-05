@@ -32,6 +32,7 @@
                 <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.35"
                     style="width:90px; cursor:pointer; accent-color: var(--accent-blue);">
             </div>
+            <button id="openRouletteGlobalBtn" class="mode-btn" data-action="toggle-roulette">🎰 Ruleta</button>
             <button id="undoBtn" class="mode-btn" data-action="undo" disabled title="Ctrl+Z">↩️ Deshacer</button>
             <button class="mode-btn" data-action="open-settings">⚙️ Ajustes</button>
             <button class="mode-btn" data-action="open-podium">🏆 Finalizar</button>
@@ -42,13 +43,24 @@
             <button id="toggleUiBtn" class="mode-btn" data-action="toggle-ui">Ocultar UI</button>
         </div>
 
+        <!-- RULETA GLOBAL (admin y anunciador) -->
+        <div id="rouletteGlobalWrapper" class="roulette-wrapper hidden">
+            <div class="roulette-container">
+                <div class="roulette-pointer"></div>
+                <div class="roulette-wheel" id="rouletteWheel"></div>
+                <button class="roulette-btn admin-only" id="spinRouletteBtn" data-action="roulette-spin">Girar</button>
+            </div>
+            <div id="rouletteWinner" class="roulette-winner" aria-live="polite"></div>
+        </div>
+
         <!-- HEADER -->
         <div class="header">
             <div style="display:flex; align-items:center; justify-content:center; gap:20px;">
-                <img src="./images/señalando.png" style="height:5em; transform:scaleX(-1);" alt="">
+                <img src="./images/señalando.png" style="height:10em; transform:scaleX(-1);" alt="">
                 <h1>Concursillo - UTH Edition</h1>
-                <img src="./images/señalando.png" style="height:5em;" alt="">
+                <img src="./images/señalando.png" style="height:10em;" alt="">
             </div>
+            <p class="header-credits">Desarrollado por <span class="credits-name">Nahuel Soria Parodi</span></p>
         </div>
 
         <!-- ACCIONES (modo edición, solo admin) -->
@@ -78,7 +90,7 @@
 
         <!-- MODO EDICIÓN (solo admin) -->
         <div id="editModeContainer" class="mode-content admin-only" style="display:none;">
-            <h2 style="text-align:center;">Opciones de Ronda</h2>
+            <h2 style="text-align:center; margin-bottom: 20px;">Opciones de Ronda</h2>
             <p class="edit-info">Seleccioná la ronda para ver/editar su tablero de preguntas.</p>
             <div class="tabs-container" id="tabsContainer"></div>
         </div>
@@ -98,6 +110,13 @@
                 <div class="timer-box" id="timerBox" aria-live="off">
                     <span id="timerText"></span>
                     <div class="timer-track"><div id="timerBar" class="timer-fill"></div></div>
+                </div>
+
+                <div class="timer-config-row admin-only">
+                    <span class="timer-config-label">Timer:</span>
+                    <input type="number" id="timerConfigInput" class="timer-config-input" min="0" max="600" step="5" placeholder="seg" value="0">
+                    <button class="btn btn-timer btn-timer-set" data-action="q-timer-set">Activar</button>
+                    <button class="btn btn-timer btn-timer-off" data-action="q-timer-off">✕ Quitar</button>
                 </div>
 
                 <div class="dd-banner" id="ddBanner">🎲 DAILY DOUBLE 🎲</div>
@@ -122,18 +141,8 @@
                     <button id="btnTimerToggle" class="btn" data-action="q-timer-toggle">⏱ Iniciar timer</button>
                     <button id="btnTimerReset" class="btn" data-action="q-timer-reset" title="Reiniciar timer">↺</button>
                     <button id="btnBuzzOpen" class="btn" data-action="q-buzz-open" style="display:none" title="Atajo: B">🔔 Abrir buzzers</button>
-                    <button id="toggleRouletteBtn" class="btn btn-roulette" data-action="q-roulette">Mostrar Ruleta</button>
-                    <button class="btn" data-action="q-none" title="Atajo: N">Nadie acertó</button>
+                    <button class="btn btn-finish-question" data-action="q-none" title="Marca la pregunta como usada sin dar puntos (atajo: N)">Terminar Pregunta</button>
                     <button class="btn danger" data-action="q-close" title="Atajo: Esc">Cerrar</button>
-                </div>
-
-                <!-- Ruleta (se ve en ambas vistas) -->
-                <div id="rouletteWrapper" class="roulette-wrapper hidden">
-                    <div class="roulette-container">
-                        <div class="roulette-pointer"></div>
-                        <div class="roulette-wheel" id="rouletteWheel"></div>
-                        <button class="roulette-btn admin-only" id="spinRouletteBtn" data-action="q-spin">🎰 Elegir quién juega</button>
-                    </div>
                 </div>
 
                 <div class="players-area" id="playersArea"></div>

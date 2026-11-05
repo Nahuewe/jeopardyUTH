@@ -33,6 +33,8 @@ export class Editor {
                 this.#q(e.target)[f] = e.target.value;
             } else if (f === 'value') {
                 this.#q(e.target).value = parseInt(e.target.value, 10) || 0;
+            } else if (f === 'timer') {
+                this.#q(e.target).timer = Math.max(0, parseInt(e.target.value, 10) || 0);
             }
         });
 
@@ -118,6 +120,8 @@ export class Editor {
                 <label>Opciones múltiples:
                     <button type="button" class="mini-btn" data-action="ed-tf" ${at}>Verdadero/Falso</button></label>
                 <textarea data-field="multipleChoice" ${at} placeholder="Ej: a) Opción 1 / b) Opción 2 / c) Opción 3 (separar con '/')">${esc(q.multipleChoice)}</textarea>
+                <label>⏱️ Timer propio (segundos, 0 = el de Ajustes):</label>
+                <input type="number" value="${q.timer || 0}" data-field="timer" ${at} min="0" max="600" step="5" style="width:120px;">
                 ${this.#mediaHTML(q, c, i, 'media1')}
                 ${this.#mediaHTML(q, c, i, 'media2')}
             </div>`;

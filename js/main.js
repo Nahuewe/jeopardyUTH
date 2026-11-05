@@ -19,6 +19,7 @@ import { Scoreboard } from './scoreboard.js';
 import { QuestionModal } from './questionModal.js';
 import { LightningRound } from './lightningRound.js';
 import { Podium } from './podium.js';
+import { Roulette } from './roulette.js';
 import { Participants } from './participants.js';
 import { Editor } from './editor.js';
 import { DataTransfer } from './dataTransfer.js';
@@ -49,6 +50,7 @@ class App {
         this.modal = new QuestionModal(deps);
         this.lightning = new LightningRound(deps);
         this.podium = new Podium(deps);
+        this.roulette = new Roulette(deps);
 
         if (this.admin) {
             this.participants = new Participants(this.state);
@@ -192,8 +194,10 @@ class App {
             case 'q-answer': return m.showAnswer();
             case 'q-timer-toggle': return m.toggleTimer();
             case 'q-timer-reset': return m.resetTimer();
-            case 'q-roulette': return m.toggleRoulette();
-            case 'q-spin': return m.spin();
+            case 'toggle-roulette': return this.roulette.toggle();
+            case 'roulette-spin': return this.roulette.spin();
+            case 'q-timer-set': return m.setTimerConfig();
+            case 'q-timer-off': return m.disableTimer();
             case 'q-none': return m.unanswered();
             case 'q-close': return m.close();
             case 'q-correct': return m.correct(id);
@@ -284,8 +288,6 @@ class App {
                 case 'o': return m.toggleOptions();
                 case 't': return m.toggleTimer();
                 case 'b': return m.toggleBuzzers();
-                case 'g': return m.toggleRoulette();
-                case 's': return m.spin();
                 case 'n': return m.unanswered();
                 case 'enter':
                 case 'c': {
@@ -300,6 +302,9 @@ class App {
             }
             return;
         }
+
+        if (key === 'g') return this.roulette.toggle();
+        if (key === 's') return this.roulette.spin();
 
         if (key === 'escape') {
             if (this.live.data.screen === 'lightning') this.lightning.close();
@@ -316,8 +321,8 @@ class App {
             ['O', 'Mostrar opciones (mitad de puntos)'],
             ['T', 'Iniciar / pausar el temporizador'],
             ['B', 'Abrir / cerrar los buzzers de los celulares'],
-            ['G / S', 'Mostrar ruleta / girarla'],
-            ['N', 'Nadie acertó (marca la pregunta como usada)'],
+            ['G / S', 'Mostrar/ocultar la ruleta / girarla (fuera de una pregunta)'],
+            ['N', 'Terminar pregunta (usada, sin puntos)'],
             ['Esc', 'Cerrar la pregunta'],
             ['Ctrl + Z', 'Deshacer el último cambio de puntos'],
             ['?', 'Esta ayuda']
@@ -359,7 +364,7 @@ class App {
         if (!intro) return;
 
         if (this.admin) {
-            setTimeout(() => { intro.style.animation = 'hideIntro 1s forwards'; }, 4000);
+            intro.remove(); // el concursillo arranca directo, sin cortinas
             return;
         }
         // En el anunciador hace falta un click para habilitar el audio del navegador.

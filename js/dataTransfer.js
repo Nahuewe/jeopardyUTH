@@ -140,7 +140,7 @@ export class DataTransfer {
                     ...makeQuestion(Number(q.value) || 0),
                     question: q.question || '', answer: q.answer || '', multipleChoice: q.multipleChoice || '',
                     media1: await this.#unpackMedia(q.media1), media2: await this.#unpackMedia(q.media2),
-                    dailyDouble: !!q.dailyDouble, used: !!q.used, usedWithOptions: !!q.usedWithOptions
+                    dailyDouble: !!q.dailyDouble, timer: Number(q.timer) || 0, used: !!q.used, usedWithOptions: !!q.usedWithOptions
                 });
             }
             questions.push(out);

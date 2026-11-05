@@ -102,6 +102,7 @@ async function migrateQuestion(q) {
         media1: await migrateMedia(q.media1),
         media2: await migrateMedia(q.media2),
         dailyDouble: !!q.dailyDouble,
+        timer: Number(q.timer) || 0,
         used: !!q.used,
         usedWithOptions: !!q.usedWithOptions
     };

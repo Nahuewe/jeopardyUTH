@@ -16,6 +16,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
     dailyDoubleEnabled: true,
     lightningPoints: 100,
     sfx: true,
+    autoCloseOnCorrect: false, // cerrar sola la pregunta tras un acierto
     buzzerEnabled: false,   // buzzers remotos activos al abrir la app
     roomCode: '',           // código de sala del buzzer
     publicUrl: ''           // URL pública donde está publicada la app (para el link del buzzer)
@@ -29,6 +30,7 @@ export const makeQuestion = (value = 100) => ({
     media1: null,
     media2: null,
     dailyDouble: false,
+    timer: 0,               // segundos propios de esta pregunta (0 = el de Ajustes)
     used: false,
     usedWithOptions: false
 });

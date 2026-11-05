@@ -83,7 +83,6 @@ export class Board {
         tile.innerHTML = `
             <div class="final-tile-inner">
                 <div class="final-title">⭐ RONDA RELÁMPAGO</div>
-                ${admin ? '<div class="final-tile-hint">Click para empezar</div>' : ''}
             </div>`;
         if (admin) {
             tile.dataset.action = 'open-lightning';

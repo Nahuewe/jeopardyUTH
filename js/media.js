@@ -49,7 +49,7 @@ export const MediaStore = {
         if (!media || !url) return '';
         const attrs = `class="spoiler-content-media" data-media-slot="${esc(slot)}" src="${esc(url)}"`;
         switch (media.type) {
-            case 'image': return `<img ${attrs} alt="Imagen de la pregunta">`;
+            case 'image': return `<img ${attrs} style="max-width:320px;" alt="Imagen de la pregunta">`;
             case 'audio': return `<audio ${attrs} controls style="width:20rem;height:2rem;"></audio>`;
             case 'video': return `<video ${attrs} controls style="max-width:320px;"></video>`;
             default: return '';

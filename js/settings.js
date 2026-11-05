@@ -27,6 +27,7 @@ export class Settings {
                     <label class="set-row"><span>Segundos por pregunta</span>
                         <input type="number" id="setTimerSeconds" min="5" max="300" step="5" value="${s.timerSeconds}"></label>
                     ${check('setAutoTimer', 'Iniciar el timer al terminar de escribirse la pregunta', s.autoTimer)}
+                    ${check('setAutoClose', 'Cerrar sola la pregunta tras un acierto', s.autoCloseOnCorrect, 'Si está apagado, la cerrás vos con Terminar/Cerrar.')}
                     ${check('setDeduct', 'Restar puntos al fallar', s.deductOnWrong, 'Si está apagado, fallar solo bloquea al participante.')}
                     ${check('setDD', 'Daily Double habilitada', s.dailyDoubleEnabled, 'Las casillas marcadas piden apuesta.')}
                     <label class="set-row"><span>Puntos por acierto en Ronda Relámpago</span>
@@ -41,6 +42,7 @@ export class Settings {
                 timerEnabled: document.getElementById('setTimerEnabled').checked,
                 timerSeconds: Math.max(5, parseInt(document.getElementById('setTimerSeconds').value, 10) || 30),
                 autoTimer: document.getElementById('setAutoTimer').checked,
+                autoCloseOnCorrect: document.getElementById('setAutoClose').checked,
                 deductOnWrong: document.getElementById('setDeduct').checked,
                 dailyDoubleEnabled: document.getElementById('setDD').checked,
                 lightningPoints: Math.max(0, parseInt(document.getElementById('setLightning').value, 10) || 0),

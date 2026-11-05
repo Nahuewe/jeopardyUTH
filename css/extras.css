@@ -46,7 +46,12 @@ body.view-announcer .modal { cursor: default; }
 }
 
 .mode-controls-panel { flex-wrap: wrap; }
-body.ui-hidden .mode-controls-panel > :not(#toggleUiBtn) { display: none !important; }
+body.ui-hidden .mode-controls-panel > :not(#toggleUiBtn):not(#musicBtn):not(#volumeContainer) { display: none !important; }
+body.ui-hidden .mode-controls-panel { margin-bottom: 0; }
+body.ui-hidden .header { display: none; }
+
+.roulette-winner { display: none; text-align: center; font-size: 1.5rem; font-weight: 800; margin-top: 10px; }
+.roulette-winner.show { display: block; }
 
 /* ---------- Accesibilidad ---------- */
 

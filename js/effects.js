@@ -48,7 +48,7 @@ const SOUNDS = {
     tada: () => playTones([523, 659, 784, 1047, 784, 1047], { step: 0.12 }),
     roulette: () => {
         const el = document.getElementById('rouletteTick');
-        if (el) { el.currentTime = 0; el.play().catch(() => { }); }
+        if (el) { el.currentTime = 0; el.volume = 0.1; el.play().catch(() => { }); }
     }
 };
 
