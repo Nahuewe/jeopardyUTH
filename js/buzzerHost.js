@@ -205,6 +205,8 @@ export class BuzzerHost {
                 : { ...base, state: 'other', who: this.state.participantById(q.buzzedId)?.name ?? '' };
         }
         if (q.lockedOut.includes(target)) return { ...base, state: 'out' };
+        const foulMs = (q.fouls?.[target] ?? 0) - Date.now();
+        if (foulMs > 0) return { ...base, state: 'foul', ms: foulMs };
         return { ...base, state: q.buzzOpen ? 'armed' : 'wait' };
     }
 
@@ -215,6 +217,8 @@ export class BuzzerHost {
     }
 
     #push() {
+        clearTimeout(this.foulTimer);
+        let nextExpiry = Infinity;
         for (const entry of this.entries.values()) {
             if (!entry.playerId) continue;
             if (!this.state.players.some(p => p.id === entry.playerId)) {
@@ -223,9 +227,11 @@ export class BuzzerHost {
                 continue;
             }
             const status = this.#statusFor(entry);
-            const sig = JSON.stringify(status);
+            if (status.state === 'foul') nextExpiry = Math.min(nextExpiry, status.ms);
+            const sig = JSON.stringify({ ...status, ms: status.state === 'foul' ? Math.round(status.ms / 250) : undefined });
             if (sig !== entry.last) { entry.last = sig; this.#send(entry, status); }
         }
+        if (nextExpiry < Infinity) this.foulTimer = setTimeout(() => this.#push(), nextExpiry + 30);
     }
 
     #updateConnected() {

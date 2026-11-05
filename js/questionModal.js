@@ -239,6 +239,7 @@ export class QuestionModal {
         else if (q.result?.type === 'none') html = '<span class="rb-bad">Nadie acertó esta pregunta</span>';
         else if (q.phase === 'bet') html = `<span class="rb-info">🎲 ¡DAILY DOUBLE! ${q.responderId ? esc(name(q.responderId)) + ' está apostando…' : ''}</span>`;
         else if (q.buzzedId) html = `<span class="rb-info">🔔 ${esc(name(q.buzzedId))} respondió primero</span>`;
+        else if (q.lastFoul) html = `<span class="rb-bad">⚠️ ${esc(name(q.lastFoul.pid))} se adelantó</span>`;
         else if (q.buzzOpen && this.live.data.buzzerOn && this.live.data.connected.length) html = '<span class="rb-info">🔔 ¡Buzzers abiertos!</span>';
         else if (q.responderId) html = `<span class="rb-info">🎯 Le toca a ${esc(name(q.responderId))}</span>`;
         else if (list.length && q.lockedOut.length >= list.length) html = '<span class="rb-bad">😬 Todos fallaron</span>';
@@ -512,7 +513,7 @@ export class QuestionModal {
                 optionsShown: false, answerShown: false,
                 mediaRevealed: [false, false],
                 responderId: dd ? (turn?.id ?? null) : null,
-                buzzOpen: false,
+                buzzOpen: false, fouls: {}, lastFoul: null,
                 buzzedId: null, lockedOut: [], result: null, mood: 'reading'
             }
         });
@@ -545,11 +546,31 @@ export class QuestionModal {
         if (q && q.phase === 'open') this.live.patchQ({ buzzOpen: !q.buzzOpen });
     }
 
+    #foul(pid) {
+        const q = this.live.data.q;
+        const secs = this.state.settings.buzzFoulSeconds;
+        if (!secs) return;
+        const fouls = { ...(q.fouls || {}), [pid]: Date.now() + secs * 1000 };
+        const first = !(q.fouls?.[pid] > Date.now());
+        this.live.patchQ({ fouls, lastFoul: { pid, at: Date.now() } });
+        if (first) {
+            Effects.sound('timeup');
+            Effects.toast(`⚠️ ${this.state.participantById(pid)?.name} se adelantó (-${secs}s)`, 'error');
+        }
+        this.#later(() => {
+            const cur = this.live.data.q;
+            if (cur?.key === q.key && cur.lastFoul?.pid === pid) this.live.patchQ({ lastFoul: null });
+        }, 2500);
+    }
+
     /** remote: viene de un celular, así que solo vale con los buzzers abiertos. */
     buzz(pid, { remote = false } = {}) {
         const q = this.live.data.q;
         if (!q || q.phase !== 'open' || q.dd || q.buzzedId || q.result || q.lockedOut.includes(pid)) return;
-        if (remote && !q.buzzOpen) return;
+        if (remote) {
+            // Apretar antes de tiempo (o estando castigado) es una falta: el castigo se reinicia.
+            if (!q.buzzOpen || (q.fouls?.[pid] ?? 0) > Date.now()) return this.#foul(pid);
+        }
         const round = this.state.roundById(q.roundId);
         if (!this.state.participants(round).some(p => p.id === pid)) return;
         this.pauseTimer();

@@ -16,6 +16,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
     dailyDoubleEnabled: true,
     lightningPoints: 100,
     sfx: true,
+    buzzFoulSeconds: 3,        // castigo por apretar el buzzer antes de que abra (0 = solo se ignora)
     autoCloseOnCorrect: false, // cerrar sola la pregunta tras un acierto
     buzzerEnabled: false,   // buzzers remotos activos al abrir la app
     roomCode: '',           // código de sala del buzzer

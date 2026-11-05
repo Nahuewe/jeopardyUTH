@@ -27,6 +27,8 @@ export class Settings {
                     <label class="set-row"><span>Segundos por pregunta</span>
                         <input type="number" id="setTimerSeconds" min="5" max="300" step="5" value="${s.timerSeconds}"></label>
                     ${check('setAutoTimer', 'Iniciar el timer al terminar de escribirse la pregunta', s.autoTimer)}
+                    <label class="set-row"><span>Castigo por adelantarse con el buzzer (seg)<small>Si apretás antes de que abran, quedás bloqueado ese tiempo. 0 = solo se ignora.</small></span>
+                        <input type="number" id="setFoul" min="0" max="30" step="1" value="${s.buzzFoulSeconds}"></label>
                     ${check('setAutoClose', 'Cerrar sola la pregunta tras un acierto', s.autoCloseOnCorrect, 'Si está apagado, la cerrás vos con Terminar/Cerrar.')}
                     ${check('setDeduct', 'Restar puntos al fallar', s.deductOnWrong, 'Si está apagado, fallar solo bloquea al participante.')}
                     ${check('setDD', 'Daily Double habilitada', s.dailyDoubleEnabled, 'Las casillas marcadas piden apuesta.')}
@@ -42,6 +44,7 @@ export class Settings {
                 timerEnabled: document.getElementById('setTimerEnabled').checked,
                 timerSeconds: Math.max(5, parseInt(document.getElementById('setTimerSeconds').value, 10) || 30),
                 autoTimer: document.getElementById('setAutoTimer').checked,
+                buzzFoulSeconds: Math.max(0, parseInt(document.getElementById('setFoul').value, 10) || 0),
                 autoCloseOnCorrect: document.getElementById('setAutoClose').checked,
                 deductOnWrong: document.getElementById('setDeduct').checked,
                 dailyDoubleEnabled: document.getElementById('setDD').checked,

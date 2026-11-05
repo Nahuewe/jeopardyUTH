@@ -26,6 +26,7 @@ let lastStatus = null;
 let retryTimer = null;
 let connectTimeout = null;
 let connected = false;
+let foulTimer = null;
 
 /* ---------- Vistas ---------- */
 
@@ -69,7 +70,8 @@ function showRoster(players, error = '') {
 
 const LABELS = {
     idle: ['Esperando una pregunta…', 'idle'],
-    wait: ['Escuchá la pregunta…', 'wait'],
+    wait: ['Escuchá la pregunta… ¡no aprietes todavía!', 'wait'],
+    foul: ['⚠️ ¡Te adelantaste!', 'foul'],
     armed: ['¡APRETÁ!', 'armed'],
     you: ['¡Tenés la palabra!', 'you'],
     other: ['respondió primero', 'other'],
@@ -80,8 +82,10 @@ const LABELS = {
 function showPlay(status) {
     const s = status || lastStatus || { state: 'idle', name: me?.name, color: me?.color, score: 0 };
     const [text, cls] = LABELS[s.state] ?? LABELS.idle;
-    const label = s.state === 'other' ? `${esc(s.who || 'Otro jugador')} ${text}` : text;
-    const enabled = s.state === 'armed';
+    const label = s.state === 'other' ? `${esc(s.who || 'Otro jugador')} ${text}`
+        : s.state === 'foul' ? `${text}<small id="foulLeft">Esperá ${Math.ceil((s.ms || 0) / 1000)} s</small>` : text;
+    // En 'wait' el botón responde (apretar antes de tiempo es falta); en 'foul' reinicia el castigo.
+    const enabled = s.state === 'armed' || s.state === 'wait' || s.state === 'foul';
 
     app.innerHTML = `
         <div class="bz-play">
@@ -93,6 +97,17 @@ function showPlay(status) {
             <footer>${connected ? '🟢 Conectado' : '🟠 Reconectando…'} · <button id="leave" class="bz-link">No soy yo</button></footer>
         </div>`;
 
+    clearInterval(foulTimer);
+    if (s.state === 'foul') {
+        const end = Date.now() + (s.ms || 0);
+        foulTimer = setInterval(() => {
+            const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+            const el = document.getElementById('foulLeft');
+            if (el) el.textContent = `Esperá ${left} s`;
+            if (left <= 0) clearInterval(foulTimer);
+        }, 250);
+    }
+
     const buzz = document.getElementById('buzz');
     // pointerdown responde más rápido que click en celulares.
     buzz.addEventListener('pointerdown', (e) => {
@@ -100,8 +115,12 @@ function showPlay(status) {
         e.preventDefault();
         send({ t: 'buzz' });
         navigator.vibrate?.(60);
-        buzz.disabled = true;
-        buzz.textContent = 'Enviado…';
+        if (buzz.classList.contains('armed')) {
+            buzz.disabled = true;
+            buzz.textContent = 'Enviado…';
+        } else {
+            navigator.vibrate?.([120, 60, 120]);
+        }
     });
     document.getElementById('leave').addEventListener('click', () => {
         store.del(`jpd-player-${room}`);

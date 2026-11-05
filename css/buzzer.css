@@ -75,6 +75,10 @@ form.bz-center input {
     animation: bzPulse 1s infinite;
 }
 .bz-buzz.armed:active { transform: scale(0.96); }
+.bz-buzz.foul { background: #7d3a3a; font-size: clamp(1.3rem, 6vw, 2.2rem); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; animation: bzShake 0.4s; }
+.bz-buzz.foul small { font-size: 0.55em; font-weight: 600; opacity: 0.9; }
+.bz-buzz.wait { cursor: pointer; }
+@keyframes bzShake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
 .bz-buzz.you { background: #e1b12c; color: #1a1a1a; }
 .bz-buzz.other { background: #7d3a3a; font-size: clamp(1.2rem, 6vw, 2rem); }
 .bz-buzz.out { background: #3a3d42; font-size: clamp(1.1rem, 5vw, 1.8rem); }
