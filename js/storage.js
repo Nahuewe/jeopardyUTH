@@ -1,166 +1,185 @@
 /* ================================
-   STORAGE MODULE
-   Manejo de IndexedDB y LocalStorage
+   STORAGE
+   IndexedDB: partida (v2) + medios como Blobs
+   Incluye migración desde el formato anterior.
 ================================ */
 
-export const Storage = {
-    DB_NAME: 'JeopardyDB',
-    DB_VERSION: 2,
-    STORE_NAME: 'roundsDataStore',
-    PLAYERS_STORE_NAME: 'playersAndTeams',
-    PLAYERS_KEY: 'jeopardyPlayers',
-    TEAMS_KEY: 'jeopardyTeams',
+import { uid, Utils } from './utils.js';
 
-    async openDB() {
+const DB_NAME = 'JeopardyDB';
+const DB_VERSION = 3;
+const GAME_STORE = 'roundsDataStore';       // se reutiliza el store existente
+const LEGACY_PLAYERS_STORE = 'playersAndTeams';
+const MEDIA_STORE = 'media';
+const GAME_KEY = 'gameV2';
+
+let dbPromise = null;
+
+function openDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            for (const name of [GAME_STORE, LEGACY_PLAYERS_STORE]) {
+                if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains(MEDIA_STORE)) db.createObjectStore(MEDIA_STORE, { keyPath: 'id' });
+        };
+        req.onsuccess = (e) => {
+            const db = e.target.result;
+            db.onversionchange = () => { db.close(); dbPromise = null; };
+            resolve(db);
+        };
+        req.onerror = (e) => { dbPromise = null; reject(e.target.error); };
+    });
+    return dbPromise;
+}
+
+async function run(store, mode, fn) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, mode);
+        const result = fn(tx.objectStore(store));
+        tx.oncomplete = () => resolve(result?.result ?? result);
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+    });
+}
+
+const getRecord = (store, key) => run(store, 'readonly', s => s.get(key));
+const putRecord = (store, value) => run(store, 'readwrite', s => s.put(value));
+
+/* ---------- Medios ---------- */
+
+export const MediaDB = {
+    async put(blob, type) {
+        const id = uid();
+        await putRecord(MEDIA_STORE, { id, blob, type, size: blob.size });
+        return id;
+    },
+    async get(id) {
+        const rec = await getRecord(MEDIA_STORE, id);
+        return rec?.blob ?? null;
+    },
+    async remove(id) {
+        return run(MEDIA_STORE, 'readwrite', s => s.delete(id));
+    },
+    async allIds() {
+        const db = await openDB();
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open(this.DB_NAME, this.DB_VERSION);
-
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-
-                if (!db.objectStoreNames.contains(this.STORE_NAME)) {
-                    db.createObjectStore(this.STORE_NAME, { keyPath: 'id' });
-                }
-
-                if (!db.objectStoreNames.contains(this.PLAYERS_STORE_NAME)) {
-                    db.createObjectStore(this.PLAYERS_STORE_NAME, { keyPath: 'id' });
-                }
-            };
-
-            request.onsuccess = (event) => resolve(event.target.result);
-            request.onerror = (event) => {
-                console.error("IndexedDB error:", event.target.error);
-                reject(event.target.error);
-            };
+            const req = db.transaction(MEDIA_STORE, 'readonly').objectStore(MEDIA_STORE).getAllKeys();
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
         });
-    },
+    }
+};
 
-    // --- MÉTODOS DE DATOS DEL JUEGO ---
+/* ---------- Migración del formato anterior ---------- */
 
-    async saveGameData(roundsData) {
+const LEGACY_ROUND_IDS = { individual: 'r-individual', grupal: 'r-grupal' };
+
+async function migrateMedia(media) {
+    if (!media) return null;
+    if (media.mediaId) return { type: media.type, mediaId: media.mediaId };
+    if (typeof media.url === 'string' && media.url.startsWith('data:')) {
         try {
-            const db = await this.openDB();
-            const transaction = db.transaction([this.STORE_NAME], 'readwrite');
-            const store = transaction.objectStore(this.STORE_NAME);
-            const dataToStore = { id: 'currentRoundsData', data: roundsData };
-            store.put(dataToStore);
-
-            await new Promise((resolve, reject) => {
-                transaction.oncomplete = resolve;
-                transaction.onerror = reject;
-            });
-            console.log("Datos guardados en IndexedDB.");
-        } catch (error) {
-            console.error("Error al guardar en IndexedDB:", error);
+            const blob = await Utils.dataURLToBlob(media.url);
+            return { type: media.type, mediaId: await MediaDB.put(blob, media.type) };
+        } catch (e) {
+            console.warn('No se pudo migrar un medio', e);
         }
-    },
+    }
+    return null;
+}
 
-    async loadGameData() {
+async function migrateQuestion(q) {
+    return {
+        value: Number(q.value) || 0,
+        question: q.question || '',
+        answer: q.answer || '',
+        multipleChoice: q.multipleChoice || '',
+        media1: await migrateMedia(q.media1),
+        media2: await migrateMedia(q.media2),
+        dailyDouble: !!q.dailyDouble,
+        used: !!q.used,
+        usedWithOptions: !!q.usedWithOptions
+    };
+}
+
+async function migrateLegacy() {
+    const legacyRounds = (await getRecord(GAME_STORE, 'currentRoundsData'))?.data;
+    const legacyPlayers = (await getRecord(LEGACY_PLAYERS_STORE, 'jeopardyPlayers'))?.data ?? [];
+    const legacyTeams = (await getRecord(LEGACY_PLAYERS_STORE, 'jeopardyTeams'))?.data ?? [];
+    if (!legacyRounds && !legacyPlayers.length && !legacyTeams.length) return null;
+
+    const rounds = [];
+    for (const [key, r] of Object.entries(legacyRounds || {})) {
+        const questions = [];
+        for (const col of (r.questions || [])) questions.push(await Promise.all(col.map(migrateQuestion)));
+        rounds.push({
+            id: LEGACY_ROUND_IDS[key] || uid(),
+            name: r.name || key,
+            mode: key === 'grupal' ? 'team' : 'individual',
+            categories: r.categories || [],
+            questions
+        });
+    }
+
+    const players = legacyPlayers.map(p => ({
+        id: uid(), name: p.name, score: p.score || 0,
+        color: p.color || Utils.generateColor(), avatar: p.avatar || ''
+    }));
+    const byName = new Map(players.map(p => [p.name, p.id]));
+    const teams = legacyTeams.map(t => ({
+        id: uid(), name: t.name, score: t.score || 0, color: t.color || Utils.generateColor(),
+        memberIds: (t.members || []).map(n => byName.get(n)).filter(Boolean)
+    }));
+
+    return { version: 2, rounds, activeRoundId: rounds[0]?.id ?? null, players, teams };
+}
+
+/* ---------- API pública ---------- */
+
+export const Storage = {
+    /** Devuelve la partida guardada (migrando si hace falta) o null si es la primera vez. */
+    async loadGame() {
         try {
-            const db = await this.openDB();
-            const transaction = db.transaction([this.STORE_NAME], 'readonly');
-            const store = transaction.objectStore(this.STORE_NAME);
-            const request = store.get('currentRoundsData');
-
-            return new Promise((resolve, reject) => {
-                request.onsuccess = (event) => {
-                    const result = event.target.result;
-                    resolve(result ? result.data : null);
-                };
-                request.onerror = (event) => {
-                    console.error("Error al cargar desde IndexedDB:", event.target.error);
-                    reject(event.target.error);
-                };
-            });
-        } catch (error) {
-            console.error("No se pudo conectar a IndexedDB.");
+            const rec = await getRecord(GAME_STORE, GAME_KEY);
+            if (rec?.data) return rec.data;
+            const migrated = await migrateLegacy();
+            if (migrated) await putRecord(GAME_STORE, { id: GAME_KEY, data: migrated });
+            return migrated;
+        } catch (e) {
+            console.error('No se pudo leer IndexedDB:', e);
             return null;
         }
     },
 
-    // --- MÉTODOS DE JUGADORES ---
-
-    async savePlayers(players) {
+    async saveGame(data) {
         try {
-            const db = await this.openDB();
-            const transaction = db.transaction([this.PLAYERS_STORE_NAME], 'readwrite');
-            const store = transaction.objectStore(this.PLAYERS_STORE_NAME);
-
-            store.put({ id: this.PLAYERS_KEY, data: players });
-
-            await new Promise((resolve, reject) => {
-                transaction.oncomplete = resolve;
-                transaction.onerror = reject;
-            });
-            console.log("Jugadores guardados en IndexedDB.");
-        } catch (error) {
-            console.error("Error al guardar jugadores en IndexedDB:", error);
+            await putRecord(GAME_STORE, { id: GAME_KEY, data });
+        } catch (e) {
+            console.error('Error al guardar la partida:', e);
+            window.dispatchEvent(new CustomEvent('storage-error', { detail: e }));
         }
     },
 
-    async loadPlayers() {
+    /** Elimina los medios que ya no usa ninguna pregunta. */
+    async collectGarbage(referencedIds) {
         try {
-            const db = await this.openDB();
-            const transaction = db.transaction([this.PLAYERS_STORE_NAME], 'readonly');
-            const store = transaction.objectStore(this.PLAYERS_STORE_NAME);
-            const request = store.get(this.PLAYERS_KEY);
-
-            return new Promise((resolve) => {
-                request.onsuccess = (event) => {
-                    const result = event.target.result;
-                    resolve(result ? result.data : []);
-                };
-                request.onerror = () => {
-                    console.warn("No se pudieron cargar los jugadores. Usando lista vacía.");
-                    resolve([]);
-                };
-            });
-        } catch (error) {
-            console.error("Error de conexión al cargar jugadores:", error);
-            return [];
+            const keep = new Set(referencedIds);
+            for (const id of await MediaDB.allIds()) if (!keep.has(id)) await MediaDB.remove(id);
+        } catch (e) {
+            console.warn('GC de medios falló', e);
         }
     },
 
-    // --- MÉTODOS DE EQUIPOS ---
-
-    async saveTeams(teams) {
-        try {
-            const db = await this.openDB();
-            const transaction = db.transaction([this.PLAYERS_STORE_NAME], 'readwrite');
-            const store = transaction.objectStore(this.PLAYERS_STORE_NAME);
-
-            store.put({ id: this.TEAMS_KEY, data: teams });
-
-            await new Promise((resolve, reject) => {
-                transaction.oncomplete = resolve;
-                transaction.onerror = reject;
-            });
-            console.log("Equipos guardados en IndexedDB.");
-        } catch (error) {
-            console.error("Error al guardar equipos en IndexedDB:", error);
-        }
+    async requestPersistence() {
+        try { await navigator.storage?.persist?.(); } catch { /* opcional */ }
     },
 
-    async loadTeams() {
-        try {
-            const db = await this.openDB();
-            const transaction = db.transaction([this.PLAYERS_STORE_NAME], 'readonly');
-            const store = transaction.objectStore(this.PLAYERS_STORE_NAME);
-            const request = store.get(this.TEAMS_KEY);
-
-            return new Promise((resolve) => {
-                request.onsuccess = (event) => {
-                    const result = event.target.result;
-                    resolve(result ? result.data : []);
-                };
-                request.onerror = () => {
-                    console.warn("No se pudieron cargar los equipos. Usando lista vacía.");
-                    resolve([]);
-                };
-            });
-        } catch (error) {
-            console.error("Error de conexión al cargar equipos:", error);
-            return [];
-        }
+    async estimate() {
+        try { return await navigator.storage?.estimate?.(); } catch { return null; }
     }
 };

@@ -1,416 +1,713 @@
 /* ================================
-   QUESTION MODAL COMPONENT
-   Modal para mostrar preguntas
+   QUESTION MODAL
+   Se renderiza desde LiveState en ambos roles.
+   Los métodos de acción solo los usa el admin.
 ================================ */
 
-import { Utils } from './utils.js';
+import { Utils, esc, uid, DEFAULT_AVATAR } from './utils.js';
+import { MediaStore } from './media.js';
+import { Effects } from './effects.js';
+
+const $ = (id) => document.getElementById(id);
+const SPIN_MS = 8500;
+const PRESENTER_IMAGES = ['./images/leyendo.png', './images/tirarCarta.png', './images/presentando.png'];
 
 export class QuestionModal {
-    constructor(gameState, pointsManager) {
-        this.gameState = gameState;
-        this.pointsManager = pointsManager;
-        this.modalElement = document.getElementById('modal');
-        this.currentTypingInterval = null;
-        this.currentQuestionPoints = 0;
-        this.currentQuestionLocation = { col: -1, row: -1 };
-        this.usedMultipleChoice = false;
-        this.rouletteAngle = 0;
-        this.selectedScorableIndex = null;
-        this.lastTickIndex = null;
-        this.tickAudio = document.getElementById("rouletteTick");
+    constructor({ state, live, scoring, sync, role }) {
+        this.state = state;
+        this.live = live;
+        this.scoring = scoring;
+        this.sync = sync;
+        this.role = role;
+        this.admin = role === 'admin';
 
-        this.setupEventListeners();
-
+        this.el = $('modal');
         this.presenterImg = document.querySelector('.presenter-img');
 
-        this.presenterImages = [
-            "./images/leyendo.png",
-            "./images/tirarCarta.png",
-            "./images/presentando.png"
-        ];
+        this.key = null;            // pregunta mostrada actualmente
+        this.typedKey = null;       // pregunta cuyo texto ya se tipeó
+        this.optionsKey = null;
+        this.optionsToken = 0;
+        this.typing = null;
+        this.presenterMood = null;
+        this.presenterIdx = 0;
+        this.presenterTimer = null;
+        this.timeouts = new Set();
+        this.playersSig = '';
+        this.wheelSig = '';
+        this.rouletteNonce = -1;
+        this.pointerRaf = null;
+        this.lastTick = null;
 
-        this.currentPresenterIndex = 0;
-        this.rotationInterval = null;
+        live.on('change', (d) => this.render(d));
+        state.on('change', () => this.render(live.data));
+        setInterval(() => this.#tickTimer(), 200);
+
+        this.#bindEvents();
+        if (!this.admin) sync.on('media', (m) => this.#remoteMedia(m));
+        else sync.on('presence', () => this.#applyMute());
     }
 
-    toggleRoulette() {
-        const wrapper = document.getElementById("rouletteWrapper");
-        const btn = document.getElementById("toggleRouletteBtn");
-        if (!wrapper || !btn) return;
-        const isHidden = wrapper.classList.contains("hidden");
-        wrapper.classList.toggle("hidden");
-        btn.textContent = isHidden ? "Ocultar Ruleta" : "Mostrar Ruleta";
+    /* =========================================================
+       EVENTOS LOCALES (ambos roles)
+    ========================================================= */
+
+    #bindEvents() {
+        this.el.addEventListener('click', (e) => {
+            const reveal = e.target.closest('[data-action="reveal-media"]');
+            if (reveal) return this.revealMedia(reveal.dataset.slot);
+
+            if (e.target.closest('#questionText')) return this.typing?.finish();
+
+            if (this.admin && e.target === this.el) this.close();
+        });
+
+        this.el.addEventListener('keydown', (e) => {
+            const reveal = e.target.closest?.('[data-action="reveal-media"]');
+            if (reveal && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); this.revealMedia(reveal.dataset.slot); }
+        });
+
+        // Los eventos de medios no burbujean: se capturan.
+        if (this.admin) {
+            for (const type of ['play', 'pause', 'seeked']) {
+                this.el.addEventListener(type, (e) => {
+                    const m = e.target.closest?.('[data-media-slot]');
+                    if (!m || !this.sync.announcerPresent) return;
+                    this.sync.send('media', { slot: m.dataset.mediaSlot, action: type, time: m.currentTime });
+                }, true);
+            }
+        }
+
+        this.el.addEventListener('change', (e) => {
+            if (this.admin && e.target.id === 'betParticipant') this.live.patchQ({ responderId: e.target.value });
+        });
     }
 
-    setupEventListeners() {
-        this.modalElement.onclick = (e) => {
-            if (e.target === this.modalElement) this.close();
+    #remoteMedia({ slot, action, time }) {
+        const m = this.el.querySelector(`[data-media-slot="${CSS.escape(slot)}"]`);
+        if (!m) return;
+        if (Math.abs(m.currentTime - time) > 0.6) m.currentTime = time;
+        if (action === 'play') m.play().catch(() => { });
+        if (action === 'pause') m.pause();
+    }
+
+    #applyMute() {
+        if (!this.admin) return;
+        const mute = this.sync.announcerPresent;
+        this.el.querySelectorAll('audio[data-media-slot], video[data-media-slot]').forEach(m => { m.muted = mute; });
+    }
+
+    /* =========================================================
+       RENDER
+    ========================================================= */
+
+    render(l = this.live.data) {
+        const q = l.q;
+        const visible = l.screen === 'question' && q;
+        this.el.classList.toggle('active', !!visible);
+        if (!visible) return this.#teardown();
+
+        const round = this.state.roundById(q.roundId);
+        const data = this.state.getQuestion(q.roundId, q.col, q.row);
+        if (!round || !data) return;
+
+        if (this.key !== q.key) this.#startQuestion(q);
+
+        const bet = q.phase === 'bet';
+        $('categoryTitle').textContent = round.categories[q.col] ?? '';
+        $('pointValue').textContent = bet ? '🎲' : `$${q.points}`;
+        $('ddBanner').classList.toggle('show', !!q.dd);
+        this.el.classList.toggle('phase-bet', bet);
+
+        this.#renderBet(q, round);
+        if (!bet && this.typedKey !== q.key) this.#typeQuestion(q, data);
+        this.#syncMedia(q);
+        this.#syncOptions(q, data);
+        this.#syncAnswer(q, data);
+        this.#renderBanner(q, round);
+        this.#renderPlayers(q, round);
+        this.#renderTimer();
+        this.#renderRoulette(l.roulette, round);
+        this.#updatePresenter(q.mood || 'reading');
+        this.#renderAdminControls(q, data);
+    }
+
+    #startQuestion(q) {
+        this.#teardown();
+        this.key = q.key;
+        this.typedKey = null;
+        this.optionsKey = null;
+        this.playersSig = '';
+        $('questionText').innerHTML = '';
+        $('multipleChoiceText').innerHTML = '';
+        $('multipleChoiceContainer').classList.remove('show');
+        $('answerText').textContent = '';
+        $('answerText').classList.remove('show');
+        if (q.dd) Effects.sound('dd');
+    }
+
+    #teardown() {
+        this.typing?.cancel();
+        this.typing = null;
+        this.optionsToken++;
+        this.key = null;
+        this.typedKey = null;
+        this.#stopPresenter();
+        this.presenterMood = null;
+        this.el.querySelectorAll('audio, video').forEach(m => { m.pause(); });
+        cancelAnimationFrame(this.pointerRaf);
+    }
+
+    /* ---------- Pregunta ---------- */
+
+    #typeQuestion(q, data) {
+        this.typedKey = q.key;
+        const box = $('questionText');
+        const attachMedia = () => {
+            const html = (data.media1 ? MediaStore.spoilerHtml(data.media1, 'media1') : '')
+                + (data.media2 ? MediaStore.spoilerHtml(data.media2, 'media2') : '');
+            if (html) box.insertAdjacentHTML('beforeend', html);
+            this.#syncMedia(this.live.data.q);
+            this.#applyMute();
         };
-        const btnOptions = document.getElementById('btnShowOptions');
-        if (btnOptions) btnOptions.onclick = () => this.showOptions();
+
+        this.typing = Utils.typeWrite(box, data.question || '(Sin texto)', {
+            onDone: () => {
+                if (this.key !== q.key) return;
+                attachMedia();
+                const cur = this.live.data;
+                // Terminó de leerse la pregunta: se habilitan los buzzers remotos.
+                if (this.admin && cur.q?.key === q.key && !cur.q.buzzOpen && !cur.q.result) this.live.patchQ({ buzzOpen: true });
+                if (this.admin && this.state.settings.timerEnabled && this.state.settings.autoTimer
+                    && !cur.timer && cur.q?.key === q.key && !cur.q.result) {
+                    this.startTimer();
+                }
+            }
+        });
     }
 
-    stopPresenterRotation() {
-        if (this.rotationInterval) {
-            clearInterval(this.rotationInterval);
-            this.rotationInterval = null;
+    #syncMedia(q) {
+        if (!q) return;
+        this.el.querySelectorAll('.spoiler-container').forEach(c => {
+            const idx = c.dataset.slot === 'media2' ? 1 : 0;
+            c.classList.toggle('revealed', !!q.mediaRevealed?.[idx] || c.classList.contains('revealed'));
+        });
+    }
+
+    #syncOptions(q, data) {
+        const container = $('multipleChoiceContainer');
+        const has = (data.multipleChoice || '').trim() !== '';
+        if (q.optionsShown && has) {
+            container.classList.add('show');
+            if (this.optionsKey !== q.key) {
+                this.optionsKey = q.key;
+                const token = ++this.optionsToken;
+                $('multipleChoiceText').innerHTML = '';
+                this.#typeOptions(data.multipleChoice.split('/').map(o => o.trim()).filter(Boolean), token);
+            }
+        } else {
+            container.classList.remove('show');
+            this.optionsKey = null;
         }
     }
 
-    startPresenterRotation() {
-        if (!this.presenterImg) return;
-        this.stopPresenterRotation();
-        this.currentPresenterIndex = 0;
-        this.presenterImg.src = this.presenterImages[this.currentPresenterIndex];
+    async #typeOptions(options, token) {
+        const box = $('multipleChoiceText');
+        for (const text of options) {
+            if (token !== this.optionsToken) return;
+            const p = document.createElement('p');
+            p.className = 'multiple-choice-option';
+            box.appendChild(p);
+            for (const ch of text) {
+                if (token !== this.optionsToken) return;
+                p.textContent += ch;
+                await Utils.sleep(Utils.TYPING_SPEED);
+            }
+            await Utils.sleep(900);
+        }
+    }
 
-        this.rotationInterval = setInterval(() => {
+    #syncAnswer(q, data) {
+        const el = $('answerText');
+        const shouldShow = !!q.answerShown;
+        el.textContent = shouldShow ? (data.answer || '') : '';
+        el.classList.toggle('show', shouldShow);
+    }
+
+    #renderBanner(q, round) {
+        const banner = $('responderBanner');
+        const name = (id) => this.state.participantById(id)?.name ?? '';
+        const list = this.state.participants(round);
+        let html = '';
+
+        if (q.result?.type === 'correct') html = `<span class="rb-ok">✅ ¡Correcto, ${esc(name(q.result.pid))}!</span>`;
+        else if (q.result?.type === 'wrong') html = `<span class="rb-bad">❌ ${esc(name(q.result.pid))} falló la Daily Double</span>`;
+        else if (q.result?.type === 'none') html = '<span class="rb-bad">Nadie acertó esta pregunta</span>';
+        else if (q.phase === 'bet') html = `<span class="rb-info">🎲 ¡DAILY DOUBLE! ${q.responderId ? esc(name(q.responderId)) + ' está apostando…' : ''}</span>`;
+        else if (q.buzzedId) html = `<span class="rb-info">🔔 ${esc(name(q.buzzedId))} respondió primero</span>`;
+        else if (q.buzzOpen && this.live.data.buzzerOn && this.live.data.connected.length) html = '<span class="rb-info">🔔 ¡Buzzers abiertos!</span>';
+        else if (q.responderId) html = `<span class="rb-info">🎯 Le toca a ${esc(name(q.responderId))}</span>`;
+        else if (list.length && q.lockedOut.length >= list.length) html = '<span class="rb-bad">😬 Todos fallaron</span>';
+
+        banner.innerHTML = html;
+        banner.classList.toggle('show', !!html);
+    }
+
+    /* ---------- Apuesta (Daily Double) ---------- */
+
+    #renderBet(q, round) {
+        const panel = $('betPanel');
+        const show = q.phase === 'bet';
+        panel.classList.toggle('show', show);
+        if (!show) { panel.innerHTML = ''; panel.dataset.sig = ''; return; }
+
+        const list = this.state.participants(round);
+        const sig = `${this.role}|${q.responderId}|${list.map(p => `${p.id}:${p.score}`).join(',')}`;
+        if (panel.dataset.sig === sig) return;
+        panel.dataset.sig = sig;
+
+        const who = this.state.participantById(q.responderId);
+        if (!this.admin) {
+            panel.innerHTML = `<p class="bet-wait">🎲 Daily Double — ${who ? esc(who.name) : 'alguien'} está haciendo su apuesta…</p>`;
+            return;
+        }
+        const max = who ? this.scoring.maxBet(who.id, q.roundId) : 0;
+        panel.innerHTML = `
+            <label>¿Quién juega?
+                <select id="betParticipant">
+                    ${list.map(p => `<option value="${esc(p.id)}" ${p.id === q.responderId ? 'selected' : ''}>${esc(p.name)} (${Utils.formatScore(p.score)})</option>`).join('')}
+                </select>
+            </label>
+            <label>Apuesta (5 – $${max}):
+                <input id="betAmount" type="number" min="5" max="${max}" step="5" value="${Math.min(max, 500)}">
+            </label>
+            <button class="btn btn-save" data-action="q-bet-confirm">Confirmar apuesta</button>`;
+    }
+
+    confirmBet() {
+        const q = this.live.data.q;
+        if (!q || q.phase !== 'bet') return;
+        const pid = $('betParticipant')?.value || q.responderId;
+        if (!pid) return Effects.toast('No hay participantes', 'error');
+        const max = this.scoring.maxBet(pid, q.roundId);
+        const bet = parseInt($('betAmount')?.value, 10);
+        if (!Number.isFinite(bet) || bet < 5 || bet > max) {
+            return Effects.toast(`La apuesta debe estar entre $5 y $${max}`, 'error');
+        }
+        this.live.patchQ({ phase: 'open', points: bet, bet, responderId: pid });
+    }
+
+    /* ---------- Participantes ---------- */
+
+    #renderPlayers(q, round) {
+        const area = $('playersArea');
+        let list = this.state.participants(round);
+        if (q.dd && q.phase === 'open') list = list.filter(p => p.id === q.responderId);
+
+        const sig = JSON.stringify([this.role, q.points, q.dd, q.phase, q.lockedOut, q.buzzedId, q.responderId, !!q.result,
+            this.state.settings.deductOnWrong, list.map(p => [p.id, p.name, p.score, p.color, p.avatar?.length])]);
+        if (sig === this.playersSig) return;
+        this.playersSig = sig;
+
+        if (!list.length) {
+            const what = this.state.isTeamRound(round) ? 'equipos' : 'jugadores';
+            area.innerHTML = `<div class="players-area-empty"><span>⚠️</span><p>¡No hay ${what} para asignar puntos!</p></div>`;
+            return;
+        }
+        if (q.phase === 'bet') { area.innerHTML = ''; return; }
+
+        const teamMode = this.state.isTeamRound(round);
+        const all = this.state.participants(round);
+        const sorted = [...list].sort((a, b) => b.score - a.score);
+        area.innerHTML = sorted.map(p => this.#playerCard(p, q, teamMode, all.findIndex(x => x.id === p.id))).join('');
+    }
+
+    #playerCard(p, q, teamMode, index) {
+        const locked = q.lockedOut.includes(p.id);
+        const buzzed = q.buzzedId === p.id || (!q.buzzedId && q.responderId === p.id);
+        const avatar = (!teamMode && p.avatar) ? p.avatar : DEFAULT_AVATAR;
+        const done = !!q.result;
+        const deduct = this.state.settings.deductOnWrong;
+
+        let status = '';
+        if (locked) status = '<span class="pc-status bad">✖ Ya falló</span>';
+        else if (buzzed) status = '<span class="pc-status ok">🔔 Respondiendo</span>';
+
+        const buttons = this.admin ? `
+            <div class="player-btn-group">
+                <button class="player-add" style="background:${esc(p.color)};" data-action="q-correct" data-id="${esc(p.id)}" ${locked || done ? 'disabled' : ''}>✅ +$${q.points}</button>
+                <button class="player-deduct" data-action="q-wrong" data-id="${esc(p.id)}" ${locked || done ? 'disabled' : ''}>❌ ${deduct ? `-$${q.points}` : 'Falló'}</button>
+            </div>` : '';
+        const key = this.admin && index >= 0 && index < 9 && !q.dd ? `<kbd class="buzz-key" title="Tecla para buzzer">${index + 1}</kbd>` : '';
+
+        return `
+            <div class="player-info ${buzzed ? 'is-responder' : ''} ${locked ? 'locked-out' : ''}" style="border-top-color:${esc(p.color)};--p-color:${esc(p.color)};">
+                ${key}
+                <img src="${esc(avatar)}" alt="${esc(p.name)}" class="player-avatar" style="border-color:${esc(p.color)};">
+                <span class="player-name">${esc(p.name)}</span>
+                <span class="player-score" style="color:${p.score < 0 ? 'var(--danger-red)' : 'var(--success-green)'};">${Utils.formatScore(p.score)}</span>
+                ${status}
+                ${buttons}
+            </div>`;
+    }
+
+    #renderAdminControls(q, data) {
+        if (!this.admin) return;
+        const hasOptions = (data.multipleChoice || '').trim() !== '';
+        const hint = $('btnShowOptions');
+        hint.style.display = hasOptions && !q.dd ? 'inline-flex' : 'none';
+        hint.disabled = q.optionsShown;
+
+        const t = this.live.data.timer;
+        const btn = $('btnTimerToggle');
+        btn.style.display = this.state.settings.timerEnabled ? '' : 'none';
+        $('btnTimerReset').style.display = this.state.settings.timerEnabled ? '' : 'none';
+        btn.textContent = !t || t.finished ? '⏱ Iniciar timer' : t.running ? '⏸ Pausar timer' : '▶ Reanudar timer';
+
+        const adminAnswer = $('adminAnswer');
+        adminAnswer.innerHTML = `<strong>🔒 Respuesta (solo vos):</strong> ${esc(data.answer || '—')}`;
+
+        $('btnShowAnswer').disabled = !!q.answerShown;
+        const bz = $('btnBuzzOpen');
+        bz.style.display = this.live.data.buzzerOn && q.phase === 'open' && !q.dd ? '' : 'none';
+        bz.textContent = q.buzzOpen ? '🔕 Cerrar buzzers' : '🔔 Abrir buzzers';
+        $('toggleRouletteBtn').textContent = this.live.data.roulette.visible ? 'Ocultar Ruleta' : 'Mostrar Ruleta';
+        $('spinRouletteBtn').disabled = this.live.data.roulette.spinning;
+        $('spinRouletteBtn').textContent = this.live.data.roulette.spinning ? '⏳ Girando…' : '🎰 Elegir quién juega';
+    }
+
+    /* ---------- Presentadora ---------- */
+
+    #updatePresenter(mood) {
+        if (!this.presenterImg || this.presenterMood === mood) return;
+        this.presenterMood = mood;
+        if (mood === 'correct') { this.#stopPresenter(); this.presenterImg.src = './images/correcto.png'; }
+        else if (mood === 'incorrect') { this.#stopPresenter(); this.presenterImg.src = './images/incorrecto.png'; }
+        else this.#startPresenter();
+    }
+
+    #startPresenter() {
+        this.#stopPresenter();
+        this.presenterIdx = 0;
+        this.presenterImg.src = PRESENTER_IMAGES[0];
+        this.presenterTimer = setInterval(() => {
             this.presenterImg.classList.add('presenter-fade');
             setTimeout(() => {
-                this.currentPresenterIndex = (this.currentPresenterIndex + 1) % this.presenterImages.length;
-                this.presenterImg.src = this.presenterImages[this.currentPresenterIndex];
+                this.presenterIdx = (this.presenterIdx + 1) % PRESENTER_IMAGES.length;
+                this.presenterImg.src = PRESENTER_IMAGES[this.presenterIdx];
                 this.presenterImg.classList.remove('presenter-fade');
             }, 200);
         }, 4000);
     }
 
-    renderRoulette() {
-        const wheel = document.getElementById("rouletteWheel");
-        const scorables = this.gameState.getCurrentScorables();
-        if (!wheel || !scorables.length) return;
+    #stopPresenter() {
+        clearInterval(this.presenterTimer);
+        this.presenterTimer = null;
+    }
 
-        wheel.innerHTML = "";
+    /* ---------- Temporizador ---------- */
 
-        const sliceAngle = 360 / scorables.length;
+    #renderTimer() {
+        const box = $('timerBox');
+        const t = this.live.data.timer;
+        box.classList.toggle('show', !!t && this.state.settings.timerEnabled);
+        this.#tickTimer();
+    }
 
-        const gradient = scorables.map((scorable, i) => {
-            const start = i * sliceAngle;
-            const end = start + sliceAngle;
-            const hex = scorable.color || '#5865f2';
-            return `${hex}55 ${start}deg ${end}deg`;
-        }).join(",");
+    #tickTimer() {
+        const t = this.live.data.timer;
+        const box = $('timerBox');
+        if (!t || !box.classList.contains('show')) return;
 
-        wheel.style.background = `conic-gradient(${gradient})`;
+        const ms = this.live.timerRemaining();
+        const secs = Math.ceil(ms / 1000);
+        $('timerText').textContent = t.finished ? '¡Tiempo!' : `⏱ ${secs}s`;
+        $('timerBar').style.width = `${Math.max(0, Math.min(100, (ms / t.durationMs) * 100))}%`;
+        box.classList.toggle('warn', secs <= 10 && secs > 5 && !t.finished);
+        box.classList.toggle('danger', (secs <= 5 && !t.finished) || t.finished);
+        box.classList.toggle('paused', !t.running && !t.finished);
 
-        scorables.forEach((scorable, index) => {
-            const label = document.createElement("div");
-            label.className = "roulette-label";
-            label.textContent = scorable.name;
+        if (this.admin && t.running && ms <= 0) {
+            this.live.set({ timer: { ...t, running: false, remainingMs: 0, finished: true } });
+            Effects.sound('timeup');
+        }
+    }
 
-            const angleDeg = sliceAngle * index + sliceAngle / 2;
-            const angleRad = (angleDeg - 90) * (Math.PI / 180);
+    startTimer() {
+        const t = this.live.data.timer;
+        const dur = this.state.settings.timerSeconds * 1000;
+        if (!t || t.finished) {
+            this.live.set({ timer: { durationMs: dur, remainingMs: dur, endsAt: Date.now() + dur, running: true, finished: false } });
+        } else if (!t.running) {
+            this.live.set({ timer: { ...t, running: true, endsAt: Date.now() + t.remainingMs } });
+        }
+    }
 
-            const r = 140 * 0.55;
-            const x = 50 + (r / 140) * 50 * Math.cos(angleRad);
-            const y = 50 + (r / 140) * 50 * Math.sin(angleRad);
+    pauseTimer() {
+        const t = this.live.data.timer;
+        if (!t || !t.running) return;
+        this.live.set({ timer: { ...t, running: false, remainingMs: this.live.timerRemaining() } });
+    }
 
-            label.style.position = 'absolute';
-            label.style.left = `${x}%`;
-            label.style.top = `${y}%`;
-            label.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg)`;
-            label.style.setProperty('--label-color', scorable.color || '#fff');
+    toggleTimer() {
+        const t = this.live.data.timer;
+        if (t?.running) this.pauseTimer(); else this.startTimer();
+    }
+
+    resetTimer() {
+        this.live.set({ timer: null });
+    }
+
+    /* ---------- Ruleta ---------- */
+
+    #renderRoulette(r, round) {
+        const wrapper = $('rouletteWrapper');
+        wrapper.classList.toggle('hidden', !r.visible);
+
+        const list = this.state.participants(round);
+        const sig = list.map(p => `${p.id}|${p.name}|${p.color}`).join(';');
+        const wheel = $('rouletteWheel');
+
+        if (sig !== this.wheelSig && !r.spinning) {
+            this.wheelSig = sig;
+            this.#buildWheel(wheel, list);
+        }
+
+        if (r.nonce !== this.rouletteNonce) {
+            this.rouletteNonce = r.nonce;
+            if (r.spinning) {
+                wheel.style.transition = `transform ${r.durationMs}ms cubic-bezier(0.17, 0.67, 0.12, 1)`;
+                wheel.style.transform = `rotate(${r.angle}deg)`;
+                this.#startPointerLoop(wheel, list.length);
+            } else {
+                wheel.style.transition = 'none';
+                wheel.style.transform = `rotate(${r.angle}deg)`;
+            }
+        }
+
+        wheel.querySelectorAll('.roulette-label').forEach(label => {
+            label.classList.toggle('winner', !!r.selectedId && label.dataset.id === r.selectedId);
+        });
+    }
+
+    #buildWheel(wheel, list) {
+        wheel.innerHTML = '';
+        if (!list.length) { wheel.style.background = ''; return; }
+        const slice = 360 / list.length;
+        wheel.style.background = `conic-gradient(${list.map((p, i) => `${p.color}55 ${i * slice}deg ${(i + 1) * slice}deg`).join(',')})`;
+
+        list.forEach((p, i) => {
+            const label = document.createElement('div');
+            label.className = 'roulette-label';
+            label.dataset.id = p.id;
+            label.textContent = p.name;
+            const angleDeg = slice * i + slice / 2;
+            const rad = (angleDeg - 90) * Math.PI / 180;
+            const r = 0.55 * 50;
+            label.style.cssText = `position:absolute;left:${50 + r * Math.cos(rad)}%;top:${50 + r * Math.sin(rad)}%;transform:translate(-50%,-50%) rotate(${angleDeg}deg);`;
+            label.style.setProperty('--label-color', p.color || '#fff');
             wheel.appendChild(label);
         });
     }
 
-    spinRoulette() {
-        const scorables = this.gameState.getCurrentScorables();
-        if (!scorables.length) return;
-
-        const wheel = document.getElementById("rouletteWheel");
-        const spinBtn = document.getElementById("spinRouletteBtn");
-        const sliceAngle = 360 / scorables.length;
-
-        spinBtn.disabled = true;
-        spinBtn.textContent = "⏳ Girando...";
-
-        const spins = Math.floor(Math.random() * 4) + 8;
-        const randomAngle = Math.random() * 360;
-        this.rouletteAngle += spins * 360 + randomAngle;
-
-        if (this.tickAudio) {
-            this.tickAudio.currentTime = 0;
-            this.tickAudio.play().catch(() => { });
-        }
-
-        const DURATION = 8500;
-        wheel.style.transition = `transform ${DURATION}ms cubic-bezier(0.17, 0.67, 0.12, 1)`;
-        wheel.style.transform = `rotate(${this.rouletteAngle}deg)`;
-
-        this.lastTickIndex = null;
-
-        const tickInterval = setInterval(() => {
-            const normalized = (360 - (this.rouletteAngle % 360) + 360) % 360;
-            const index = Math.floor(normalized / sliceAngle) % scorables.length;
-            if (index !== this.lastTickIndex) {
-                this.lastTickIndex = index;
-                const pointer = document.querySelector(".roulette-pointer");
-                if (pointer) {
-                    pointer.classList.remove("hit");
-                    void pointer.offsetWidth;
-                    pointer.classList.add("hit");
-                }
+    #startPointerLoop(wheel, n) {
+        cancelAnimationFrame(this.pointerRaf);
+        if (!n) return;
+        const slice = 360 / n;
+        const pointer = document.querySelector('.roulette-pointer');
+        this.lastTick = null;
+        const loop = () => {
+            const m = new DOMMatrix(getComputedStyle(wheel).transform);
+            const angle = (Math.atan2(m.b, m.a) * 180 / Math.PI + 360) % 360;
+            const idx = Math.floor(((360 - angle) % 360) / slice) % n;
+            if (idx !== this.lastTick) {
+                this.lastTick = idx;
+                pointer?.classList.remove('hit');
+                void pointer?.offsetWidth;
+                pointer?.classList.add('hit');
             }
-        }, 100);
-
-        setTimeout(() => {
-            clearInterval(tickInterval);
-            spinBtn.disabled = false;
-            spinBtn.textContent = "Girar de nuevo";
-
-            const finalAngle = (this.rouletteAngle % 360 + 360) % 360;
-            const pointerAngle = (360 - finalAngle + 360) % 360;
-            const selectedIndex = Math.floor(pointerAngle / sliceAngle) % scorables.length;
-
-            this.selectedScorableIndex = selectedIndex;
-            this.highlightWinner(selectedIndex);
-
-            const selected = scorables[selectedIndex];
-            Swal.fire({
-                icon: "success",
-                title: "¡Le toca jugar!",
-                html: `<span style="font-size:1.4rem; font-weight:900; color:${selected.color}">${selected.name}</span>`,
-                confirmButtonColor: selected.color,
-                background: '#2f3136',
-                color: '#dcddde'
-            });
-        }, DURATION);
+            if (this.live.data.roulette.spinning) this.pointerRaf = requestAnimationFrame(loop);
+        };
+        loop();
     }
 
-    highlightWinner(index) {
-        document.querySelectorAll(".roulette-label").forEach((label, i) => {
-            label.classList.toggle("winner", i === index);
-        });
+    toggleRoulette() {
+        this.live.patchRoulette({ visible: !this.live.data.roulette.visible });
+    }
+
+    spin() {
+        const q = this.live.data.q;
+        const r = this.live.data.roulette;
+        if (!q || r.spinning) return;
+        const all = this.state.participants(this.state.roundById(q.roundId));
+        if (!all.length) return;
+
+        const slice = 360 / all.length;
+        const target = r.angle + (8 + Math.floor(Math.random() * 4)) * 360 + Math.random() * 360;
+        const final = ((target % 360) + 360) % 360;
+        const idx = Math.floor(((360 - final) % 360) / slice) % all.length;
+        const winner = all[idx];
+
+        this.live.patchRoulette({ visible: true, spinning: true, angle: target, durationMs: SPIN_MS, nonce: r.nonce + 1, selectedId: null });
+        Effects.sound('roulette');
+
+        this.#later(() => {
+            this.live.patchRoulette({ spinning: false, selectedId: winner.id });
+            if (this.live.data.q && !this.live.data.q.dd) this.live.patchQ({ responderId: winner.id });
+            Effects.toast(`🎯 Le toca a ${winner.name}`, 'success');
+        }, SPIN_MS);
+    }
+
+    /* =========================================================
+       ACCIONES DEL ADMIN
+    ========================================================= */
+
+    #later(fn, ms) {
+        const h = setTimeout(() => { this.timeouts.delete(h); fn(); }, ms);
+        this.timeouts.add(h);
+        return h;
+    }
+
+    #clearTimeouts() {
+        this.timeouts.forEach(clearTimeout);
+        this.timeouts.clear();
     }
 
     open(col, row) {
-        const currentData = this.gameState.getCurrentRoundData();
-        const questionData = currentData.questions[col][row];
-        if (questionData.used) return;
+        const round = this.state.round;
+        const data = round?.questions[col]?.[row];
+        if (!data || data.used) return;
 
-        this.currentQuestionLocation = { col, row };
-        this.currentQuestionPoints = questionData.value;
-        this.usedMultipleChoice = false;
+        this.#clearTimeouts();
+        const list = this.state.participants(round);
+        const dd = !!data.dailyDouble && this.state.settings.dailyDoubleEnabled;
+        const turn = list.find(p => p.id === this.state.session.turnId) ?? list[0];
 
-        this.displayQuestion(currentData.categories[col], questionData.value, questionData);
-        this.updatePlayersArea();
-        this.modalElement.classList.add('active');
-        this.startPresenterRotation();
-        this.renderRoulette();
-
-        // Reset roulette button text
-        const spinBtn = document.getElementById("spinRouletteBtn");
-        if (spinBtn) {
-            spinBtn.textContent = "🎰 Elegir quién juega";
-            spinBtn.disabled = false;
-            spinBtn.onclick = () => this.spinRoulette();
-        }
-        // Reset toggle button
-        const toggleBtn = document.getElementById("toggleRouletteBtn");
-        if (toggleBtn) toggleBtn.textContent = "Mostrar Ruleta";
-
-        // Ensure roulette is hidden on open
-        const wrapper = document.getElementById("rouletteWrapper");
-        if (wrapper) wrapper.classList.add("hidden");
-    }
-
-    openFinal() {
-        const currentData = this.gameState.getCurrentRoundData();
-        const questionData = currentData.finalQuestion;
-        if (!questionData || questionData.used) return;
-
-        this.currentQuestionLocation = { col: -1, row: -1 };
-        this.currentQuestionPoints = questionData.value;
-        this.usedMultipleChoice = false;
-
-        this.displayQuestion(currentData.name + " — FINAL", questionData.value, questionData);
-        this.updatePlayersArea();
-        this.modalElement.classList.add('active');
-        this.startPresenterRotation();
-        this.renderRoulette();
-
-        const spinBtn = document.getElementById("spinRouletteBtn");
-        if (spinBtn) {
-            spinBtn.textContent = "🎰 Elegir quién juega";
-            spinBtn.disabled = false;
-            spinBtn.onclick = () => this.spinRoulette();
-        }
-        const toggleBtn = document.getElementById("toggleRouletteBtn");
-        if (toggleBtn) toggleBtn.textContent = "Mostrar Ruleta";
-
-        const wrapper = document.getElementById("rouletteWrapper");
-        if (wrapper) wrapper.classList.add("hidden");
-    }
-
-    displayQuestion(categoryTitle, pointValue, questionData) {
-        document.getElementById('categoryTitle').textContent = categoryTitle;
-        document.getElementById('pointValue').textContent = `$${pointValue}`;
-
-        const questionContent = document.getElementById('questionText');
-        questionContent.innerHTML = '';
-
-        if (this.currentTypingInterval) clearInterval(this.currentTypingInterval);
-
-        let mediaHTML = '';
-        if (questionData.media1) mediaHTML += Utils.createSpoilerMediaHTML(questionData.media1);
-        if (questionData.media2) mediaHTML += Utils.createSpoilerMediaHTML(questionData.media2);
-
-        this.currentTypingInterval = Utils.typeWriterEffect(
-            questionContent,
-            questionData.question || "(Sin texto)",
-            mediaHTML
-        );
-
-        document.getElementById('answerText').textContent = questionData.answer || '';
-        document.getElementById('answerText').classList.remove('show');
-        this.setupMultipleChoice(questionData);
-    }
-
-    setupMultipleChoice(questionData) {
-        const container = document.getElementById('multipleChoiceContainer');
-        const text = document.getElementById('multipleChoiceText');
-        const button = document.getElementById('btnShowOptions');
-
-        const hasOptions = questionData.multipleChoice && questionData.multipleChoice.trim() !== '';
-        button.style.display = hasOptions ? 'inline-flex' : 'none';
-        container.classList.remove('show');
-        text.innerHTML = '';
-        this.usedMultipleChoice = false;
-    }
-
-    showOptions() {
-        const currentData = this.gameState.getCurrentRoundData();
-        const { col, row } = this.currentQuestionLocation;
-        let questionData;
-        if (col === -1) {
-            questionData = currentData.finalQuestion;
-        } else {
-            questionData = currentData.questions[col][row];
-        }
-        if (!questionData.multipleChoice || this.usedMultipleChoice) return;
-
-        this.usedMultipleChoice = true;
-
-        this.currentQuestionPoints = Math.floor(this.currentQuestionPoints / 2);
-        document.getElementById('pointValue').textContent = `$${this.currentQuestionPoints}`;
-        this.updatePlayersArea();
-
-        const container = document.getElementById('multipleChoiceContainer');
-        const text = document.getElementById('multipleChoiceText');
-        container.classList.add('show');
-        text.innerHTML = '';
-
-        const options = questionData.multipleChoice.split('/').map(o => o.trim());
-        this.typeOptions(text, options, 0);
-    }
-
-    typeOptions(container, options, index) {
-        if (index >= options.length) return;
-        const paragraph = document.createElement('p');
-        paragraph.className = 'multiple-choice-option';
-        container.appendChild(paragraph);
-        let charIndex = 0;
-        const text = options[index];
-        const interval = setInterval(() => {
-            if (charIndex < text.length) {
-                paragraph.textContent += text.charAt(charIndex);
-                charIndex++;
-            } else {
-                clearInterval(interval);
-                setTimeout(() => this.typeOptions(container, options, index + 1), 2000);
+        const prev = this.live.data.roulette;
+        this.live.set({
+            screen: 'question',
+            timer: null,
+            roulette: { ...prev, visible: false, spinning: false, selectedId: null },
+            q: {
+                key: uid(), roundId: round.id, col, row,
+                dd, phase: dd ? 'bet' : 'open',
+                points: data.value, bet: null,
+                optionsShown: false, answerShown: false,
+                mediaRevealed: [false, false],
+                responderId: dd ? (turn?.id ?? null) : null,
+                buzzOpen: false,
+                buzzedId: null, lockedOut: [], result: null, mood: 'reading'
             }
-        }, Utils.TYPING_SPEED);
+        });
     }
 
-    updatePlayersArea() {
-        const playersArea = document.getElementById("playersArea");
-        const scorables = this.gameState.getCurrentScorables();
-        const isTeamMode = this.gameState.isTeamMode();
-
-        if (!scorables.length) {
-            const entityName = isTeamMode ? 'equipos' : 'jugadores';
-            playersArea.innerHTML = `
-                <div class="players-area-empty">
-                    <span>⚠️</span>
-                    <p>¡No hay ${entityName} para asignar puntos!</p>
-                </div>`;
-            return;
-        }
-
-        const sorted = [...scorables]
-            .map((s, i) => ({ ...s, _original: i }))
-            .sort((a, b) => b.score - a.score);
-
-        playersArea.innerHTML = sorted.map(s =>
-            this.createPlayerButtons(s, s._original, isTeamMode)
-        ).join("");
-    }
-
-    createPlayerButtons(scorable, index, isTeamMode) {
-        const points = this.currentQuestionPoints;
-        const { col, row } = this.currentQuestionLocation;
-
-        const awardFn = isTeamMode
-            ? `window.game.pointsManager.awardTeam(${index}, ${points}, ${col}, ${row}, false)`
-            : `window.game.pointsManager.awardPlayer(${index}, ${points}, ${col}, ${row}, false)`;
-
-        const deductFn = isTeamMode
-            ? `window.game.pointsManager.deductTeam(${index}, ${points})`
-            : `window.game.pointsManager.deductPlayer(${index}, ${points})`;
-
-        const defaultAvatar = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="%237f8c8d" d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3c0 16.2 13.1 29.7 30 29.7H418c16.9 0 30-13.5 30-29.7C448 383.8 368.2 304 269.7 304H178.3z"/></svg>`;
-        const avatarSrc = (!isTeamMode && scorable.avatar) ? scorable.avatar : defaultAvatar;
-
-        const scoreDisplay = scorable.score < 0
-            ? `-$${Math.abs(scorable.score)}`
-            : `$${scorable.score}`;
-
-        return `
-            <div class="player-info" style="border-top-color: ${scorable.color}; --p-color: ${scorable.color};">
-                <img src="${avatarSrc}" alt="${scorable.name}" class="player-avatar" style="border-color:${scorable.color};">
-                <span class="player-name">${scorable.name}</span>
-                <span class="player-score" style="color: ${scorable.score < 0 ? 'var(--danger-red)' : 'var(--success-green)'};">${scoreDisplay}</span>
-                <div class="player-btn-group">
-                    <button class="player-add" style="background:${scorable.color};" onclick="${awardFn}">
-                        ✅ +$${points}
-                    </button>
-                    <button class="player-deduct" onclick="${deductFn}">
-                        ❌ -$${points}
-                    </button>
-                </div>
-            </div>
-        `;
+    toggleOptions() {
+        const q = this.live.data.q;
+        if (!q || q.optionsShown || q.dd || q.phase !== 'open') return;
+        this.live.patchQ({ optionsShown: true, points: Math.floor(q.points / 2) });
     }
 
     showAnswer() {
-        const el = document.getElementById('answerText');
-        el.classList.add('show');
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        this.live.patchQ({ answerShown: true });
+    }
+
+    revealMedia(slot) {
+        const idx = slot === 'media2' ? 1 : 0;
+        const container = this.el.querySelector(`.spoiler-container[data-slot="${CSS.escape(slot)}"]`);
+        container?.classList.add('revealed');
+        const q = this.live.data.q;
+        if (this.admin && q) {
+            const mediaRevealed = [...(q.mediaRevealed || [false, false])];
+            mediaRevealed[idx] = true;
+            this.live.patchQ({ mediaRevealed });
+        }
+    }
+
+    toggleBuzzers() {
+        const q = this.live.data.q;
+        if (q && q.phase === 'open') this.live.patchQ({ buzzOpen: !q.buzzOpen });
+    }
+
+    /** remote: viene de un celular, así que solo vale con los buzzers abiertos. */
+    buzz(pid, { remote = false } = {}) {
+        const q = this.live.data.q;
+        if (!q || q.phase !== 'open' || q.dd || q.buzzedId || q.result || q.lockedOut.includes(pid)) return;
+        if (remote && !q.buzzOpen) return;
+        const round = this.state.roundById(q.roundId);
+        if (!this.state.participants(round).some(p => p.id === pid)) return;
+        this.pauseTimer();
+        this.live.patchQ({ buzzedId: pid, responderId: pid });
+        Effects.sound('buzz');
+    }
+
+    #ctx(q) {
+        const round = this.state.roundById(q.roundId);
+        return {
+            roundId: q.roundId, col: q.col, row: q.row,
+            usedOptions: q.optionsShown, category: round?.categories[q.col]
+        };
+    }
+
+    correct(pid) {
+        const q = this.live.data.q;
+        if (!q || q.phase !== 'open' || q.result || q.lockedOut.includes(pid)) return;
+        if (q.dd && pid !== q.responderId) return;
+
+        this.scoring.award(pid, q.points, this.#ctx(q));
+        this.pauseTimer();
+        this.live.patchQ({ result: { type: 'correct', pid }, mood: 'correct', answerShown: true, buzzedId: pid, responderId: pid });
+        this.#later(() => this.close(), 4000);
+    }
+
+    wrong(pid) {
+        const q = this.live.data.q;
+        if (!q || q.phase !== 'open' || q.result || q.lockedOut.includes(pid)) return;
+        if (q.dd && pid !== q.responderId) return;
+        const ctx = this.#ctx(q);
+
+        if (q.dd) {
+            this.scoring.penalize(pid, q.points, { ...ctx, consume: true });
+            this.pauseTimer();
+            this.live.patchQ({ result: { type: 'wrong', pid }, mood: 'incorrect', answerShown: true });
+            this.#later(() => this.close(), 5000);
+            return;
+        }
+
+        this.scoring.penalize(pid, q.points, ctx);
+        const lockedOut = [...q.lockedOut, pid];
+        this.live.patchQ({ lockedOut, buzzedId: null, responderId: null, mood: 'incorrect' });
+        this.#later(() => {
+            if (this.live.data.q?.key === q.key && !this.live.data.q.result) this.live.patchQ({ mood: 'reading' });
+        }, 4000);
+
+        if (this.state.settings.timerEnabled && this.live.data.timer) {
+            this.resetTimer();
+            if (this.state.settings.autoTimer) this.startTimer();
+        }
+    }
+
+    /** Nadie acertó: se marca como usada y se muestra la respuesta. */
+    unanswered() {
+        const q = this.live.data.q;
+        if (!q || q.result || q.phase === 'bet') return;
+        this.scoring.markUnanswered(this.#ctx(q));
+        this.pauseTimer();
+        this.live.patchQ({ result: { type: 'none' }, answerShown: true });
+        this.#later(() => this.close(), 3500);
     }
 
     close() {
-        this.modalElement.classList.remove('active');
-        if (this.currentTypingInterval) {
-            clearInterval(this.currentTypingInterval);
-            this.currentTypingInterval = null;
-        }
-        document.querySelectorAll("#modal video, #modal audio").forEach(el => {
-            el.pause();
-            el.currentTime = 0;
+        this.#clearTimeouts();
+        if (!this.live.data.q) return;
+        const prev = this.live.data.roulette;
+        this.live.set({
+            screen: 'board', q: null, timer: null,
+            roulette: { ...prev, visible: false, spinning: false }
         });
-        this.stopPresenterRotation();
     }
 
-    showCorrectAnimation() {
-        if (!this.presenterImg) return;
-        this.stopPresenterRotation();
-        this.presenterImg.src = "./images/correcto.png";
-        setTimeout(() => this.close(), 4000);
-    }
-
-    showIncorrectAnimation() {
-        if (!this.presenterImg) return;
-        this.presenterImg.src = "./images/incorrecto.png";
-        this.stopPresenterRotation();
-        setTimeout(() => this.startPresenterRotation(), 5000);
+    /** ¿Hay una pregunta abierta? (para atajos de teclado) */
+    get isOpen() {
+        return this.live.data.screen === 'question' && !!this.live.data.q;
     }
 }

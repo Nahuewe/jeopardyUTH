@@ -1,368 +1,286 @@
 /* ================================
-   LIGHTNING ROUND MODULE
-   Ronda Relámpago - Turno por turno
+   LIGHTNING ROUND (Ronda Relámpago)
+   Turno por turno, con eliminación. Es el cierre del juego.
+   Se renderiza desde LiveState en admin y anunciador.
 ================================ */
 
-import { Storage } from './storage.js';
-import { Utils } from './utils.js';
+import { Dialog } from './dialog.js';
+import { Effects } from './effects.js';
+import { esc, Utils, DEFAULT_AVATAR } from './utils.js';
+
+const SUGGESTED = [
+    'Videojuegos', 'Historia', 'Ciencia', 'Deportes', 'Música', 'Cine & Series',
+    'Geografía', 'Cultura General', 'Literatura', 'Arte', 'Tecnología', 'Gastronomía'
+];
 
 export class LightningRound {
-    constructor(gameState, scoreboard) {
-        this.gameState = gameState;
-        this.scoreboard = scoreboard;
+    constructor({ state, live, scoring, role }) {
+        this.state = state;
+        this.live = live;
+        this.scoring = scoring;
+        this.admin = role === 'admin';
+        this.el = document.getElementById('lightningModal');
+        this.renderKey = '';
 
-        // Estado interno de la ronda relámpago
-        this.active = false;
-        this.participants = [];       // jugadores activos en esta ronda
-        this.eliminatedThisRound = []; // eliminados en esta ronda (no del juego)
-        this.currentIndex = 0;
-        this.category = '';
-        this.pointsPerCorrect = 100;
+        live.on('change', (d) => this.render(d));
+        state.on('change', () => this.render(live.data));
 
-        this.modalEl = document.getElementById('lightningModal');
-        this._bindClose();
+        if (this.admin) {
+            this.el.addEventListener('click', (e) => { if (e.target === this.el) this.close(); });
+            this.el.addEventListener('input', (e) => {
+                if (e.target.id === 'lrCategoryInput') this.#setCategory(e.target.value.trim(), false);
+            });
+        }
     }
 
-    _bindClose() {
-        // Cerrar al hacer clic en el fondo
-        this.modalEl.addEventListener('click', (e) => {
-            if (e.target === this.modalEl) this.close();
-        });
+    get lr() {
+        return this.live.data.lightning;
     }
+
+    /* =========================================================
+       ACCIONES (admin)
+    ========================================================= */
 
     open() {
-        const players = this.gameState.players;
-        if (!players || players.length === 0) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Sin jugadores',
-                text: 'Agregá jugadores antes de iniciar la Ronda Relámpago.',
-                confirmButtonColor: '#5865f2'
-            });
-            return;
+        const players = this.state.players;
+        if (!players.length) {
+            return Dialog.info('Sin jugadores', 'Agregá jugadores antes de iniciar la Ronda Relámpago.', 'warning');
         }
-
-        // Resetear estado
-        this.active = true;
-        this.participants = players.map((p, i) => ({ ...p, originalIndex: i }));
-        this.eliminatedThisRound = [];
-        this.currentIndex = 0;
-        this.category = '';
-
-        this.modalEl.classList.add('active');
-        this._renderSetup();
+        this.live.set({
+            screen: 'lightning',
+            lightning: {
+                phase: 'setup', category: '', order: players.map(p => p.id),
+                idx: 0, eliminated: [], points: this.state.settings.lightningPoints
+            }
+        });
     }
 
     close() {
-        this.active = false;
-        this.modalEl.classList.remove('active');
-        this.modalEl.innerHTML = '';
+        this.live.set({ screen: 'board', lightning: null });
     }
 
-    // ─────────────────────────────────────────
-    //  PANTALLA DE CONFIGURACIÓN (elegir cat.)
-    // ─────────────────────────────────────────
-    _renderSetup(keepParticipants = false) {
-        const suggestedCategories = [
-            'Videojuegos', 'Historia', 'Ciencia', 'Deportes',
-            'Música', 'Cine & Series', 'Geografía', 'Cultura General',
-            'Literatura', 'Arte', 'Tecnología', 'Gastronomía'
-        ];
-
-        this.modalEl.innerHTML = `
-            <div class="lr-modal-content">
-                <div class="lr-header">
-                    <span class="lr-bolt">⚡</span>
-                    <h2>Ronda Relámpago</h2>
-                    <span class="lr-bolt">⚡</span>
-                </div>
-
-                <div class="lr-setup">
-                    <p class="lr-setup-label">Elegí la categoría de preguntas:</p>
-
-                    <div class="lr-category-chips" id="lrCategoryChips">
-                        ${suggestedCategories.map(cat => `
-                            <button class="lr-chip" onclick="game.lightningRound._selectChip(this, '${cat}')">${cat}</button>
-                        `).join('')}
-                    </div>
-
-                    <div class="lr-category-custom">
-                        <input
-                            type="text"
-                            id="lrCategoryInput"
-                            class="lr-input"
-                            placeholder="O escribí una categoría personalizada…"
-                            oninput="game.lightningRound._onCustomInput(this)"
-                        >
-                    </div>
-
-                    <div class="lr-setup-players">
-                        <p class="lr-setup-label">Jugadores en esta ronda (${this.participants.length}):</p>
-                        <div class="lr-player-chips">
-                            ${this.participants.map(p => `
-                                <span class="lr-player-tag" style="border-color:${p.color}; background: ${p.color}22;">
-                                    ${p.avatar ? `<img src="${p.avatar}" class="lr-tag-avatar">` : ''}
-                                    ${p.name}
-                                </span>
-                            `).join('')}
-                        </div>
-                    </div>
-
-                    <div class="lr-setup-actions">
-                        <button class="lr-btn lr-btn-start" id="lrStartBtn" onclick="game.lightningRound._startRound()" disabled>
-                            ⚡ ¡Comenzar Ronda!
-                        </button>
-                        <button class="lr-btn lr-btn-cancel" onclick="game.lightningRound.close()">
-                            Cancelar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
+    #patch(patch) {
+        this.live.set({ lightning: { ...this.lr, ...patch } });
     }
 
-    _selectChip(btn, category) {
-        // Deseleccionar otros chips
-        document.querySelectorAll('.lr-chip').forEach(c => c.classList.remove('selected'));
-        btn.classList.add('selected');
-        document.getElementById('lrCategoryInput').value = '';
-        this.category = category;
-        this._updateStartBtn();
+    #setCategory(category, rerender = true) {
+        if (!this.lr) return;
+        if (rerender) this.#patch({ category });
+        else { this.lr.category = category; this.live.emit('change', this.live.data); }
     }
 
-    _onCustomInput(input) {
-        // Deseleccionar chips si escribe
-        document.querySelectorAll('.lr-chip').forEach(c => c.classList.remove('selected'));
-        this.category = input.value.trim();
-        this._updateStartBtn();
+    selectCategory(category) {
+        const input = document.getElementById('lrCategoryInput');
+        if (input) input.value = '';
+        this.#setCategory(category);
     }
 
-    _updateStartBtn() {
-        const btn = document.getElementById('lrStartBtn');
-        if (btn) btn.disabled = !this.category;
+    start() {
+        const input = document.getElementById('lrCategoryInput')?.value.trim();
+        const category = input || this.lr.category;
+        if (!category) return;
+        this.#patch({ phase: 'play', category, idx: 0 });
     }
 
-    _startRound() {
-        const inputVal = document.getElementById('lrCategoryInput')?.value.trim();
-        if (inputVal) this.category = inputVal;
-
-        if (!this.category) return;
-
-        this.currentIndex = 0;
-        this._renderGame();
+    correct() {
+        const lr = this.lr;
+        const pid = lr.order[lr.idx];
+        const p = this.state.participantById(pid);
+        this.scoring.addPoints(pid, lr.points, { kind: 'lightning', label: `⚡ +${lr.points} → ${p?.name}` });
+        Effects.fire('win');
+        Effects.toast(`⚡ +${lr.points} → ${p?.name}`, 'success');
+        this.#patch({ idx: (lr.idx + 1) % lr.order.length });
     }
 
-    // ─────────────────────────────────────────
-    //  PANTALLA DE JUEGO
-    // ─────────────────────────────────────────
-    _renderGame() {
-        if (this.participants.length === 1) {
-            this._renderWinner();
+    async eliminate() {
+        const lr = this.lr;
+        const p = this.state.participantById(lr.order[lr.idx]);
+        const ok = await Dialog.confirm({
+            title: `¿Eliminar a ${p?.name}?`,
+            html: '<p style="color:#b9bbbe">Se elimina de la <strong>Ronda Relámpago</strong>.<br>Sus puntos quedan intactos.</p>',
+            confirmText: 'Eliminar de la ronda',
+            color: '#f04747'
+        });
+        if (!ok || !this.lr) return;
+
+        const cur = this.lr;
+        const order = cur.order.filter((_, i) => i !== cur.idx);
+        const eliminated = [...cur.eliminated, cur.order[cur.idx]];
+        const idx = cur.idx >= order.length ? 0 : cur.idx;
+        if (order.length <= 1) {
+            this.#patch({ order, eliminated, idx: 0, phase: 'winner' });
+            Effects.fire('tada');
+        } else {
+            this.#patch({ order, eliminated, idx });
+        }
+    }
+
+    async changeCategory() {
+        const ok = await Dialog.confirm({
+            title: '¿Cambiar categoría?',
+            text: 'Elegís una nueva categoría y seguís con los jugadores restantes.',
+            confirmText: 'Cambiar', cancelText: 'Quedarse', color: '#5865f2'
+        });
+        if (ok) this.#patch({ phase: 'setup', category: '' });
+    }
+
+    /* =========================================================
+       RENDER
+    ========================================================= */
+
+    render(l = this.live.data) {
+        const lr = l.lightning;
+        const visible = l.screen === 'lightning' && lr;
+        this.el.classList.toggle('active', !!visible);
+        if (!visible) {
+            if (this.renderKey) { this.el.innerHTML = ''; this.renderKey = ''; }
             return;
         }
 
-        const current = this.participants[this.currentIndex];
-        const remaining = this.participants.length;
-        const eliminated = this.eliminatedThisRound.length;
+        const scores = lr.order.map(id => this.state.participantById(id)?.score).join(',');
+        const key = lr.phase === 'setup'
+            ? `setup|${lr.order.join()}`
+            : `${lr.phase}|${lr.order.join()}|${lr.idx}|${lr.eliminated.join()}|${lr.category}|${scores}`;
 
-        const defaultAvatar = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="%237f8c8d" d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3c0 16.2 13.1 29.7 30 29.7H418c16.9 0 30-13.5 30-29.7C448 383.8 368.2 304 269.7 304H178.3z"/></svg>`;
+        if (key !== this.renderKey) {
+            this.renderKey = key;
+            this.el.innerHTML = lr.phase === 'setup' ? this.#setupHTML(lr)
+                : lr.phase === 'play' ? this.#playHTML(lr) : this.#winnerHTML(lr);
+        }
+        if (lr.phase === 'setup') this.#patchSetup(lr);
+    }
 
-        // Mini lista de próximos jugadores
-        const nextPlayers = [...this.participants];
-        // Rotar para mostrar en orden desde el current
-        const ordered = [
-            ...nextPlayers.slice(this.currentIndex),
-            ...nextPlayers.slice(0, this.currentIndex)
-        ];
+    #patchSetup(lr) {
+        this.el.querySelectorAll('.lr-chip').forEach(c => c.classList.toggle('selected', c.dataset.cat === lr.category));
+        const badge = document.getElementById('lrSetupBadge');
+        if (badge) badge.textContent = lr.category || '…';
+        const btn = document.getElementById('lrStartBtn');
+        if (btn) btn.disabled = !lr.category;
+    }
 
-        this.modalEl.innerHTML = `
-            <div class="lr-modal-content lr-game-layout">
+    #header(lr, title = 'Ronda Relámpago') {
+        return `
+            <div class="lr-header">
+                <span class="lr-bolt">⚡</span>
+                <div><h2>${title}</h2>${lr?.category && lr.phase !== 'setup' ? `<span class="lr-category-badge">${esc(lr.category)}</span>` : ''}</div>
+                <span class="lr-bolt">⚡</span>
+            </div>`;
+    }
 
-                <!-- HEADER -->
-                <div class="lr-header">
-                    <span class="lr-bolt">⚡</span>
-                    <div>
-                        <h2>Ronda Relámpago</h2>
-                        <span class="lr-category-badge">${this.category}</span>
+    #avatar(p) {
+        return p.avatar || DEFAULT_AVATAR;
+    }
+
+    #setupHTML(lr) {
+        const players = lr.order.map(id => this.state.participantById(id)).filter(Boolean);
+        const tags = players.map(p => `
+            <span class="lr-player-tag" style="border-color:${esc(p.color)};background:${esc(p.color)}22;">
+                ${p.avatar ? `<img src="${esc(p.avatar)}" class="lr-tag-avatar" alt="">` : ''}${esc(p.name)}
+            </span>`).join('');
+
+        const adminPart = this.admin ? `
+            <p class="lr-setup-label">Elegí la categoría de preguntas:</p>
+            <div class="lr-category-chips">
+                ${SUGGESTED.map(c => `<button class="lr-chip" data-action="lr-category" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}
+            </div>
+            <div class="lr-category-custom">
+                <input type="text" id="lrCategoryInput" class="lr-input" placeholder="O escribí una categoría personalizada…" value="${SUGGESTED.includes(lr.category) ? '' : esc(lr.category)}">
+            </div>` : `
+            <p class="lr-setup-label">Categoría elegida:</p>
+            <div class="lr-category-badge" id="lrSetupBadge" style="font-size:1.6rem;">…</div>`;
+
+        const actions = this.admin ? `
+            <div class="lr-setup-actions">
+                <button class="lr-btn lr-btn-start" id="lrStartBtn" data-action="lr-start" disabled>⚡ ¡Comenzar Ronda!</button>
+                <button class="lr-btn lr-btn-cancel" data-action="lr-close">Cancelar</button>
+            </div>` : '';
+
+        return `
+            <div class="lr-modal-content">
+                ${this.#header(lr)}
+                <div class="lr-setup">
+                    ${adminPart}
+                    <div class="lr-setup-players">
+                        <p class="lr-setup-label">Jugadores en esta ronda (${players.length}):</p>
+                        <div class="lr-player-chips">${tags}</div>
                     </div>
-                    <span class="lr-bolt">⚡</span>
+                    ${actions}
                 </div>
+            </div>`;
+    }
 
-                <!-- JUGADOR ACTIVO -->
-                <div class="lr-active-player" style="--player-color: ${current.color};">
+    #playHTML(lr) {
+        const cur = this.state.participantById(lr.order[lr.idx]);
+        if (!cur) return '';
+        const ordered = [...lr.order.slice(lr.idx), ...lr.order.slice(0, lr.idx)]
+            .map(id => this.state.participantById(id)).filter(Boolean);
+
+        const actions = this.admin ? `
+            <div class="lr-actions">
+                <button class="lr-btn lr-btn-correct" data-action="lr-correct">✅ Siguiente jugador <span class="lr-pts">+${lr.points} pts</span></button>
+                <button class="lr-btn lr-btn-eliminate" data-action="lr-eliminate">❌ Eliminar jugador</button>
+            </div>` : '';
+        const footer = this.admin ? `
+            <div class="lr-footer-btns">
+                <button class="lr-btn lr-btn-change-cat" data-action="lr-change-category">🔀 Cambiar categoría</button>
+                <button class="lr-btn lr-btn-cancel" data-action="lr-close">Cerrar</button>
+            </div>` : '';
+
+        return `
+            <div class="lr-modal-content lr-game-layout">
+                ${this.#header(lr)}
+                <div class="lr-active-player" style="--player-color:${esc(cur.color)};">
                     <div class="lr-active-glow"></div>
-                    <img
-                        src="${current.avatar || defaultAvatar}"
-                        alt="${current.name}"
-                        class="lr-active-avatar"
-                        style="border-color: ${current.color};"
-                    >
-                    <div class="lr-active-name" style="color: ${current.color};">${current.name}</div>
-                    <div class="lr-active-score">$${current.score}</div>
-                    <div class="lr-active-hint">Hacé tu pregunta verbalmente ↑</div>
+                    <img src="${esc(this.#avatar(cur))}" alt="${esc(cur.name)}" class="lr-active-avatar" style="border-color:${esc(cur.color)};">
+                    <div class="lr-active-name" style="color:${esc(cur.color)};">${esc(cur.name)}</div>
+                    <div class="lr-active-score">${Utils.formatScore(cur.score)}</div>
+                    <div class="lr-active-hint">¡Tu turno! Respondé rápido ⚡</div>
                 </div>
-
-                <!-- ACCIONES -->
-                <div class="lr-actions">
-                    <button class="lr-btn lr-btn-correct" onclick="game.lightningRound._correct()">
-                        ✅ Siguiente jugador <span class="lr-pts">+${this.pointsPerCorrect} pts</span>
-                    </button>
-                    <button class="lr-btn lr-btn-eliminate" onclick="game.lightningRound._eliminate()">
-                        ❌ Eliminar jugador
-                    </button>
-                </div>
-
-                <!-- COLA DE JUGADORES -->
+                ${actions}
                 <div class="lr-queue">
-                    <p class="lr-queue-label">Orden de turno (${remaining} restantes):</p>
+                    <p class="lr-queue-label">Orden de turno (${ordered.length} restantes):</p>
                     <div class="lr-queue-list">
                         ${ordered.map((p, i) => `
-                            <div class="lr-queue-item ${i === 0 ? 'lr-queue-current' : ''}" style="border-color: ${p.color};">
-                                ${p.avatar ? `<img src="${p.avatar}" class="lr-queue-avatar">` : `<span class="lr-queue-initial" style="background:${p.color};">${p.name[0]}</span>`}
-                                <span class="lr-queue-name">${i === 0 ? '👉 ' : ''}${p.name}</span>
-                                <span class="lr-queue-score">$${p.score}</span>
-                            </div>
-                        `).join('')}
+                            <div class="lr-queue-item ${i === 0 ? 'lr-queue-current' : ''}" style="border-color:${esc(p.color)};">
+                                ${p.avatar ? `<img src="${esc(p.avatar)}" class="lr-queue-avatar" alt="">`
+                : `<span class="lr-queue-initial" style="background:${esc(p.color)};">${esc(p.name[0] ?? '?')}</span>`}
+                                <span class="lr-queue-name">${i === 0 ? '👉 ' : ''}${esc(p.name)}</span>
+                                <span class="lr-queue-score">${Utils.formatScore(p.score)}</span>
+                            </div>`).join('')}
                     </div>
                 </div>
-
-                <!-- PIE -->
                 <div class="lr-footer">
-                    ${eliminated > 0 ? `<span class="lr-eliminated-count">${eliminated} eliminado${eliminated > 1 ? 's' : ''} esta ronda</span>` : ''}
-                    <div class="lr-footer-btns">
-                        <button class="lr-btn lr-btn-change-cat" onclick="game.lightningRound._changeCategory()">
-                            🔀 Cambiar categoría
-                        </button>
-                        <button class="lr-btn lr-btn-cancel" onclick="game.lightningRound.close()">
-                            Cerrar
-                        </button>
-                    </div>
+                    ${lr.eliminated.length ? `<span class="lr-eliminated-count">${lr.eliminated.length} eliminado${lr.eliminated.length > 1 ? 's' : ''} esta ronda</span>` : ''}
+                    ${footer}
                 </div>
-            </div>
-        `;
+            </div>`;
     }
 
-    _correct() {
-        const current = this.participants[this.currentIndex];
+    #winnerHTML(lr) {
+        const winner = this.state.participantById(lr.order[0]);
+        if (!winner) return '';
+        const elim = lr.eliminated.map(id => this.state.participantById(id)).filter(Boolean);
+        const actions = this.admin ? `
+            <div class="lr-winner-actions">
+                <button class="lr-btn lr-btn-start" data-action="lr-open">⚡ Nueva Ronda Relámpago</button>
+                <button class="lr-btn lr-btn-cancel" data-action="lr-close">Cerrar</button>
+            </div>` : '';
 
-        // Sumar puntos al jugador original en gameState
-        const originalPlayer = this.gameState.players[current.originalIndex];
-        if (originalPlayer) {
-            originalPlayer.score += this.pointsPerCorrect;
-            current.score = originalPlayer.score; // sincronizar copia local
-        }
-
-        Storage.savePlayers(this.gameState.players);
-        Utils.toast(`⚡ +${this.pointsPerCorrect} → ${current.name}`, 'success');
-        this.scoreboard.render();
-
-        // Avanzar al siguiente jugador (circular)
-        this.currentIndex = (this.currentIndex + 1) % this.participants.length;
-        this._renderGame();
-    }
-
-    _eliminate() {
-        const current = this.participants[this.currentIndex];
-
-        Swal.fire({
-            icon: 'question',
-            title: `¿Eliminar a ${current.name}?`,
-            html: `
-                <p style="color: #b9bbbe;">Se elimina de la <strong>Ronda Relámpago</strong>.<br>
-                Sus puntos quedan intactos y sigue en el juego principal.</p>
-            `,
-            showCancelButton: true,
-            confirmButtonText: 'Eliminar de la ronda',
-            cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#f04747',
-            background: '#2f3136',
-            color: '#dcddde'
-        }).then(result => {
-            if (result.isConfirmed) {
-                // Mover a eliminados
-                const eliminated = this.participants.splice(this.currentIndex, 1)[0];
-                this.eliminatedThisRound.push(eliminated);
-
-                // Ajustar índice para no saltar jugadores
-                if (this.currentIndex >= this.participants.length) {
-                    this.currentIndex = 0;
-                }
-
-                if (this.participants.length <= 1) {
-                    this._renderWinner();
-                } else {
-                    this._renderGame();
-                }
-            }
-        });
-    }
-
-    _changeCategory() {
-        Swal.fire({
-            title: '¿Cambiar categoría?',
-            text: 'Podés elegir una nueva categoría y continuar con los jugadores restantes.',
-            showCancelButton: true,
-            confirmButtonText: 'Cambiar',
-            cancelButtonText: 'Quedarse',
-            confirmButtonColor: '#5865f2',
-            background: '#2f3136',
-            color: '#dcddde'
-        }).then(result => {
-            if (result.isConfirmed) {
-                this._renderSetup(true);
-            }
-        });
-    }
-
-    // ─────────────────────────────────────────
-    //  PANTALLA DE GANADOR
-    // ─────────────────────────────────────────
-    _renderWinner() {
-        const winner = this.participants[0];
-        const defaultAvatar = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="%237f8c8d" d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3c0 16.2 13.1 29.7 30 29.7H418c16.9 0 30-13.5 30-29.7C448 383.8 368.2 304 269.7 304H178.3z"/></svg>`;
-
-        this.modalEl.innerHTML = `
+        return `
             <div class="lr-modal-content lr-winner-layout">
-                <div class="lr-header">
-                    <span class="lr-bolt">⚡</span>
-                    <h2>¡Ganador de la Ronda Relámpago!</h2>
-                    <span class="lr-bolt">⚡</span>
-                </div>
-
-                <div class="lr-winner-card" style="--player-color: ${winner.color};">
+                ${this.#header(lr, '¡Ganador de la Ronda Relámpago!')}
+                <div class="lr-winner-card" style="--player-color:${esc(winner.color)};">
                     <div class="lr-winner-crown">👑</div>
-                    <img
-                        src="${winner.avatar || defaultAvatar}"
-                        alt="${winner.name}"
-                        class="lr-winner-avatar"
-                        style="border-color: ${winner.color};"
-                    >
-                    <div class="lr-winner-name" style="color: ${winner.color};">${winner.name}</div>
-                    <div class="lr-winner-score">$${winner.score}</div>
+                    <img src="${esc(this.#avatar(winner))}" alt="${esc(winner.name)}" class="lr-winner-avatar" style="border-color:${esc(winner.color)};">
+                    <div class="lr-winner-name" style="color:${esc(winner.color)};">${esc(winner.name)}</div>
+                    <div class="lr-winner-score">${Utils.formatScore(winner.score)}</div>
                 </div>
-
-                ${this.eliminatedThisRound.length > 0 ? `
+                ${elim.length ? `
                     <div class="lr-eliminated-list">
                         <p>Eliminados esta ronda:</p>
-                        <div class="lr-elim-chips">
-                            ${this.eliminatedThisRound.map(p => `
-                                <span class="lr-elim-chip" style="border-color: ${p.color};">
-                                    ${p.name}
-                                </span>
-                            `).join('')}
-                        </div>
-                    </div>
-                ` : ''}
-
-                <div class="lr-winner-actions">
-                    <button class="lr-btn lr-btn-start" onclick="game.lightningRound.open()">
-                        ⚡ Nueva Ronda Relámpago
-                    </button>
-                    <button class="lr-btn lr-btn-cancel" onclick="game.lightningRound.close()">
-                        Cerrar
-                    </button>
-                </div>
-            </div>
-        `;
+                        <div class="lr-elim-chips">${elim.map(p => `<span class="lr-elim-chip" style="border-color:${esc(p.color)};">${esc(p.name)}</span>`).join('')}</div>
+                    </div>` : ''}
+                ${actions}
+            </div>`;
     }
 }

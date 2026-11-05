@@ -1,134 +1,94 @@
 /* ================================
-   BOARD COMPONENT
-   Renderizado del tablero de juego
+   BOARD
+   Tablero. Se renderiza igual en admin y anunciador;
+   solo el admin puede abrir celdas.
 ================================ */
 
 export class Board {
-    constructor(gameState, questionModal) {
-        this.gameState = gameState;
-        this.questionModal = questionModal;
-        this.boardElement = document.getElementById("board");
-        this._lastClickedCell = null;
+    constructor(state, role) {
+        this.state = state;
+        this.role = role;
+        this.el = document.getElementById('board');
     }
 
     render() {
-        if (this.gameState.currentMode !== 'game') return;
+        const round = this.state.round;
+        this.el.innerHTML = '';
 
-        this.boardElement.innerHTML = "";
-        const currentData = this.gameState.getCurrentRoundData();
-
-        if (!currentData.categories.length) {
-            this.boardElement.innerHTML = `
+        if (!round?.categories.length) {
+            this.el.innerHTML = `
                 <div class="board-empty">
                     <span>📋</span>
                     <p>No hay categorías creadas para esta ronda.</p>
-                    <small>Usá el botón <strong>Editar Preguntas</strong> en Acciones.</small>
+                    ${this.role === 'admin' ? '<small>Usá <strong>Editar Preguntas</strong> en el Modo Edición.</small>' : ''}
                 </div>`;
-            return;
+        } else {
+            round.categories.forEach((category, col) => {
+                this.el.appendChild(this.#column(round, category, col));
+            });
         }
-
-        currentData.categories.forEach((category, colIndex) => {
-            const column = this.createColumn(category, currentData.questions[colIndex] || [], colIndex);
-            this.boardElement.appendChild(column);
-        });
-
-        this.renderFinalQuestion(currentData);
+        this.#renderLightningTile();
     }
 
-    createColumn(categoryName, questions, colIndex) {
-        const column = document.createElement("div");
-        column.className = "column";
+    #column(round, category, col) {
+        const column = document.createElement('div');
+        column.className = 'column';
 
-        const header = document.createElement("div");
-        header.className = "category";
-        header.textContent = categoryName;
+        const header = document.createElement('div');
+        header.className = 'category';
+        header.textContent = category;
         column.appendChild(header);
 
-        questions.forEach((question, rowIndex) => {
-            const cell = this.createCell(question, colIndex, rowIndex);
-            column.appendChild(cell);
-        });
-
+        (round.questions[col] || []).forEach((q, row) => column.appendChild(this.#cell(round, q, col, row)));
         return column;
     }
 
-    createCell(question, colIndex, rowIndex) {
-        const cell = document.createElement("div");
-        cell.className = "cell";
+    #cell(round, q, col, row) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
 
-        let displayValue = question.value;
-        if (question.used && question.usedWithOptions) {
-            displayValue = Math.ceil(question.value / 2);
+        if (q.used) {
+            cell.classList.add('used');
+            cell.innerHTML = '<span class="cell-used-icon">✓</span>';
+            cell.setAttribute('aria-label', 'Pregunta ya usada');
+            return cell;
         }
 
-        if (question.used) {
-            cell.classList.add("used");
-            cell.innerHTML = `<span class="cell-used-icon">✓</span>`;
-        } else {
-            cell.textContent = `$${displayValue}`;
-            cell.onclick = (e) => {
-                cell.classList.add('cell-opening');
-                setTimeout(() => {
-                    this.questionModal.open(colIndex, rowIndex);
-                    cell.classList.remove('cell-opening');
-                }, 120);
-            };
+        cell.textContent = `$${q.value}`;
+        if (this.role === 'admin') {
+            cell.tabIndex = 0;
+            cell.setAttribute('role', 'button');
+            cell.setAttribute('aria-label', `${round.categories[col]} por ${q.value} puntos`);
+            cell.dataset.action = 'open-cell';
+            cell.dataset.col = col;
+            cell.dataset.row = row;
+            if (q.dailyDouble && this.state.settings.dailyDoubleEnabled) {
+                cell.classList.add('dd-hint');
+                cell.title = 'Daily Double (solo lo ves vos)';
+            }
         }
-
         return cell;
     }
 
-    renderFinalQuestion(currentData) {
-        const existing = document.getElementById('finalQuestionWide');
-        if (existing) existing.remove();
-
-        const finalQuestion = currentData.finalQuestion;
-        if (!finalQuestion) return;
-
-        const finalWrapper = document.createElement('div');
-        finalWrapper.id = 'finalQuestionWide';
-        finalWrapper.className = 'final-question-wide' + (finalQuestion.used ? ' used' : '');
-        finalWrapper.style.border = `3px dashed ${this.gameState.activeRound === 'individual' ? 'var(--accent)' : '#ffd700'}`;
-
-        const questionPreview = finalQuestion.question
-            ? (finalQuestion.question.length > 120
-                ? finalQuestion.question.slice(0, 120) + '...'
-                : finalQuestion.question)
-            : '(Sin texto)';
-
-        finalWrapper.innerHTML = `
-            <div class="final-header">Pregunta Final</div>
-            <div class="final-body">
-                <div class="final-question-preview">${questionPreview}</div>
-                <div class="final-meta">$${finalQuestion.value} ${finalQuestion.used ? ' (usada)' : ''}</div>
-                <button onclick="window.game.lightningRound.open()" ${finalQuestion.used ? 'disabled' : ''}>
-                    ⚡ Iniciar Ronda Relámpago
-                </button>
-            </div>
-        `;
-    }
-
-    renderFinalQuestionTile() {
-        const gameContainer = document.getElementById("gameModeContainer");
-        let finalTile = document.getElementById("finalQuestionTile");
-        const finalQuestion = this.gameState.getCurrentRoundData().finalQuestion || { value: 0 };
-
-        if (!finalTile) {
-            finalTile = document.createElement("div");
-            finalTile.id = "finalQuestionTile";
-            finalTile.className = "final-question-tile";
-            gameContainer.appendChild(finalTile);
+    #renderLightningTile() {
+        const host = document.getElementById('gameModeContainer');
+        let tile = document.getElementById('finalQuestionTile');
+        if (!tile) {
+            tile = document.createElement('div');
+            tile.id = 'finalQuestionTile';
+            host.appendChild(tile);
         }
-
-        const isUsed = !!finalQuestion.used;
-        finalTile.className = "final-question-tile" + (isUsed ? ' used' : '');
-        finalTile.onclick = isUsed ? null : () => window.game.lightningRound.open();
-
-        finalTile.innerHTML = `
+        const admin = this.role === 'admin';
+        tile.className = 'final-question-tile';
+        tile.innerHTML = `
             <div class="final-tile-inner">
-                <div class="final-title">⭐ RONDA RELAMPAGO</div>
-                ${!isUsed ? '<div class="final-tile-hint">Click para empezar</div>' : '<div class="final-tile-hint">Ya usada</div>'}
-            </div>
-        `;
+                <div class="final-title">⭐ RONDA RELÁMPAGO</div>
+                ${admin ? '<div class="final-tile-hint">Click para empezar</div>' : ''}
+            </div>`;
+        if (admin) {
+            tile.dataset.action = 'open-lightning';
+            tile.tabIndex = 0;
+            tile.setAttribute('role', 'button');
+        }
     }
 }

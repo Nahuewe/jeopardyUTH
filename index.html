@@ -4,9 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#202225">
     <link rel="stylesheet" href="index.css">
-    <link rel="icon" type="image/svg+xml" href="./images/porton.jpg" />
+    <link rel="stylesheet" href="css/extras.css">
     <link rel="icon" href="./images/porton.jpg" />
+    <link rel="manifest" href="./manifest.webmanifest">
     <title>Jeopardy - UTH</title>
 </head>
 
@@ -20,20 +22,24 @@
             <h1 class="intro-title">¡Bienvenidos a Jeopardy UTH!</h1>
         </div>
 
-        <!-- BARRA DE MODOS -->
-        <div class="mode-controls-panel">
-            <button id="modeGameBtn" class="mode-btn active" onclick="game.setMode('game')">Modo Juego</button>
-            <button id="modeEditBtn" class="mode-btn" onclick="game.setMode('edit')">Modo Edición</button>
-            <!-- <div class="mode-btn-separator"></div> -->
-            <button id="musicBtn" class="mode-btn" onclick="game.toggleMusic()">🎵 Música</button>
+        <!-- BARRA DE CONTROL (solo admin) -->
+        <div class="mode-controls-panel admin-only" role="toolbar" aria-label="Controles del juego">
+            <button id="modeGameBtn" class="mode-btn active" data-action="mode-game">Modo Juego</button>
+            <button id="modeEditBtn" class="mode-btn" data-action="mode-edit">Modo Edición</button>
+            <button id="musicBtn" class="mode-btn" data-action="toggle-music">🎵 Reproducir Música</button>
             <div id="volumeContainer" style="display:none; align-items:center; gap:8px;">
                 <label for="musicVolume" style="color:var(--text-muted); font-size:0.82rem;">🔊</label>
-                <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.5"
+                <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.35"
                     style="width:90px; cursor:pointer; accent-color: var(--accent-blue);">
             </div>
-            <button id="toggleUiBtn" class="mode-btn" onclick="game.toggleUI()">
-                Ocultar UI
-            </button>
+            <button id="undoBtn" class="mode-btn" data-action="undo" disabled title="Ctrl+Z">↩️ Deshacer</button>
+            <button class="mode-btn" data-action="open-settings">⚙️ Ajustes</button>
+            <button class="mode-btn" data-action="open-podium">🏆 Finalizar</button>
+            <button class="mode-btn" data-action="open-announcer">📺 Abrir anunciador</button>
+            <button id="buzzerBtn" class="mode-btn" data-action="open-buzzer">📱 Buzzers</button>
+            <span id="announcerStatus" class="announcer-status">📺 Sin anunciador</span>
+            <button class="mode-btn" data-action="show-help" title="Atajos de teclado" aria-label="Atajos de teclado">⌨️</button>
+            <button id="toggleUiBtn" class="mode-btn" data-action="toggle-ui">Ocultar UI</button>
         </div>
 
         <!-- HEADER -->
@@ -45,15 +51,22 @@
             </div>
         </div>
 
-        <!-- ACCIONES -->
-        <div class="controls-panel">
+        <!-- ACCIONES (modo edición, solo admin) -->
+        <div class="controls-panel admin-only">
             <div class="actions-list" id="actionsDropdown">
-                <button class="action-btn" onclick="game.playerManager.add()">➕ Agregar Jugador</button>
-                <button class="action-btn" onclick="game.teamManager.create()">👥 Crear Equipo</button>
-                <!-- <button class="action-btn lr-action-btn" onclick="game.lightningRound.open()">⚡ Ronda Relámpago</button> -->
-                <button class="action-btn" onclick="game.editor.open()">✏️ Editar Preguntas</button>
-                <button class="action-btn" onclick="game.pointsManager.resetScores()">🔄 Reiniciar Puntos</button>
-                <button class="action-btn" onclick="game.pointsManager.resetQuestions()">❌ Reiniciar Preguntas</button>
+                <button class="action-btn" data-action="add-player">➕ Agregar Jugador</button>
+                <button class="action-btn" data-action="create-team">👥 Crear Equipo</button>
+                <button class="action-btn" data-action="edit-questions">✏️ Editar Preguntas</button>
+                <button class="action-btn" data-action="new-round">🆕 Nueva Ronda</button>
+                <button class="action-btn" data-action="duplicate-round">📄 Duplicar Ronda</button>
+                <button class="action-btn" data-action="delete-round">🗑️ Eliminar Ronda</button>
+                <button class="action-btn" data-action="reset-scores">🔄 Reiniciar Puntos</button>
+                <button class="action-btn" data-action="reset-questions">❌ Reiniciar Preguntas</button>
+                <button class="action-btn" data-action="export-json">📦 Exportar JSON</button>
+                <button class="action-btn" data-action="import-json">📥 Importar JSON</button>
+                <button class="action-btn" data-action="export-csv">📄 Exportar CSV</button>
+                <button class="action-btn" data-action="import-csv">📥 Importar CSV</button>
+                <button class="action-btn" data-action="csv-template">🧾 Plantilla CSV</button>
             </div>
         </div>
 
@@ -61,12 +74,10 @@
         <div id="gameModeContainer" class="mode-content">
             <div class="scoreboard" id="scoreboard"></div>
             <div class="board" id="board"></div>
-            <div id="finalQuestionText"></div>
-            <div id="finalQuestionValue"></div>
         </div>
 
-        <!-- MODO EDICIÓN -->
-        <div id="editModeContainer" class="mode-content" style="display:none;">
+        <!-- MODO EDICIÓN (solo admin) -->
+        <div id="editModeContainer" class="mode-content admin-only" style="display:none;">
             <h2 style="text-align:center;">Opciones de Ronda</h2>
             <p class="edit-info">Seleccioná la ronda para ver/editar su tablero de preguntas.</p>
             <div class="tabs-container" id="tabsContainer"></div>
@@ -75,62 +86,60 @@
     </div>
 
     <!-- ═══════════════════════════════════
-         MODAL DE PREGUNTA
+         MODAL DE PREGUNTA (admin y anunciador)
     ═══════════════════════════════════ -->
-    <div class="modal" id="modal">
+    <div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Pregunta">
         <div class="modal-content">
             <div class="modal-main">
 
-                <!-- Categoría y puntos -->
                 <h2 id="categoryTitle"></h2>
                 <div class="value" id="pointValue"></div>
 
-                <!-- Pregunta -->
+                <div class="timer-box" id="timerBox" aria-live="off">
+                    <span id="timerText"></span>
+                    <div class="timer-track"><div id="timerBar" class="timer-fill"></div></div>
+                </div>
+
+                <div class="dd-banner" id="ddBanner">🎲 DAILY DOUBLE 🎲</div>
+                <div class="bet-panel" id="betPanel"></div>
+
                 <div class="question" id="questionText"></div>
 
-                <!-- Opciones múltiples -->
+                <div class="responder-banner" id="responderBanner" aria-live="polite"></div>
+
                 <div class="multiple-choice-container" id="multipleChoiceContainer">
                     <h3 style="text-align:center; margin-bottom:10px;">Opciones</h3>
                     <div class="multiple-choice-grid" id="multipleChoiceText"></div>
                 </div>
 
-                <!-- Respuesta -->
                 <div class="answer" id="answerText"></div>
+                <div class="admin-answer admin-only" id="adminAnswer"></div>
 
-                <!-- Botones de acción -->
-                <div class="buttons-top">
-                    <button id="btnShowOptions" class="btn btn-pistas" onclick="game.questionModal.showOptions()">
-                        Ver Pistas (50%)
-                    </button>
-                    <button class="btn" onclick="game.questionModal.showAnswer()">
-                        Mostrar Respuesta
-                    </button>
-                    <button id="toggleRouletteBtn" class="btn btn-roulette"
-                        onclick="game.questionModal.toggleRoulette()">
-                        Mostrar Ruleta
-                    </button>
-                    <button class="btn danger" onclick="game.questionModal.close()">
-                        Cerrar
-                    </button>
+                <!-- Botones (solo admin) -->
+                <div class="buttons-top admin-only">
+                    <button id="btnShowOptions" class="btn btn-pistas" data-action="q-options">Ver Pistas (50%)</button>
+                    <button id="btnShowAnswer" class="btn" data-action="q-answer">Mostrar Respuesta</button>
+                    <button id="btnTimerToggle" class="btn" data-action="q-timer-toggle">⏱ Iniciar timer</button>
+                    <button id="btnTimerReset" class="btn" data-action="q-timer-reset" title="Reiniciar timer">↺</button>
+                    <button id="btnBuzzOpen" class="btn" data-action="q-buzz-open" style="display:none" title="Atajo: B">🔔 Abrir buzzers</button>
+                    <button id="toggleRouletteBtn" class="btn btn-roulette" data-action="q-roulette">Mostrar Ruleta</button>
+                    <button class="btn" data-action="q-none" title="Atajo: N">Nadie acertó</button>
+                    <button class="btn danger" data-action="q-close" title="Atajo: Esc">Cerrar</button>
                 </div>
 
-                <!-- Ruleta -->
+                <!-- Ruleta (se ve en ambas vistas) -->
                 <div id="rouletteWrapper" class="roulette-wrapper hidden">
                     <div class="roulette-container">
                         <div class="roulette-pointer"></div>
                         <div class="roulette-wheel" id="rouletteWheel"></div>
-                        <button class="roulette-btn" id="spinRouletteBtn">
-                            🎰 Elegir quién juega
-                        </button>
+                        <button class="roulette-btn admin-only" id="spinRouletteBtn" data-action="q-spin">🎰 Elegir quién juega</button>
                     </div>
                 </div>
 
-                <!-- Jugadores -->
                 <div class="players-area" id="playersArea"></div>
 
             </div>
 
-            <!-- Presentadora -->
             <div class="presenter-container">
                 <img src="./images/leyendo.png" class="presenter-img" alt="Presentadora">
             </div>
@@ -138,27 +147,39 @@
     </div>
 
     <!-- ═══════════════════════════════════
-         MODAL EDITOR
+         EDITOR (solo admin)
     ═══════════════════════════════════ -->
-    <div class="editor-modal" id="editorModal">
+    <div class="editor-modal admin-only" id="editorModal" role="dialog" aria-modal="true" aria-label="Editor de ronda">
         <div class="editor-content">
             <h2 id="editorTitle">Editor de Juego</h2>
-            <button class="add-category-btn" onclick="game.editor.addCategory()">+ Agregar Categoría</button>
+            <div class="editor-round-meta">
+                <label>Nombre de la ronda
+                    <input type="text" id="roundName" data-field="roundName" maxlength="60">
+                </label>
+                <label>Modo
+                    <select id="roundMode" data-field="roundMode">
+                        <option value="individual">Individual (jugadores)</option>
+                        <option value="team">Grupal (equipos)</option>
+                    </select>
+                </label>
+            </div>
+            <div class="editor-toolbar">
+                <button class="add-category-btn" data-action="ed-add-category">+ Agregar Categoría</button>
+                <button class="mini-btn" data-action="ed-random-dd">🎲 Daily Double al azar</button>
+            </div>
             <div id="categoriesEditor"></div>
             <div class="editor-actions">
-                <button class="btn btn-save" onclick="game.editor.save()">Guardar Cambios</button>
-                <button class="btn danger btn-cancel" onclick="game.editor.close()">Cancelar</button>
+                <button class="btn btn-save" data-action="ed-save">Guardar Cambios</button>
+                <button class="btn danger btn-cancel" data-action="ed-cancel">Cancelar</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL EDITAR PREGUNTA -->
-    <div class="editor-modal" id="questionEditorModal">
-        <div class="editor-content" id="questionEditorContent"></div>
-    </div>
-
-    <!-- ⚡ MODAL RONDA RELÁMPAGO -->
+    <!-- ⚡ RONDA RELÁMPAGO -->
     <div class="modal" id="lightningModal"></div>
+
+    <!-- 🏆 PODIO -->
+    <div class="modal" id="podiumModal"></div>
 
     <!-- AUDIO -->
     <audio id="rouletteTick" src="./audio/ruleta.mp3" preload="auto"></audio>
