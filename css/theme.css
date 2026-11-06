@@ -1,0 +1,289 @@
+/* ================================
+   THEME
+   Paleta tomada de la presentadora: azul marino del traje,
+   mostaza de la corbata/brazalete y la franja gris-mostaza.
+   Se carga después de index.css y extras.css.
+================================ */
+
+:root {
+    /* Azul marino (traje) */
+    --bg-tertiary: #12152a;
+    --bg-secondary: #1c2038;
+    --bg-primary: #262b4a;
+    --bg-light: #323862;
+    --bg-lighter: #444b7c;
+    --bg-dark: #0e1020;
+    --bg-darker: #151830;
+
+    /* Mostaza (corbata y brazalete) */
+    --gold: #ffc800;
+    --gold-light: #ffd84d;
+    --gold-lighter: #ffe9a0;
+    --ink: #1a1630;                 /* texto sobre mostaza */
+    --stripe: repeating-linear-gradient(-45deg, #ffc800 0 12px, #3b3b3b 12px 24px);
+
+    /* El azul pasa a ser un acento secundario, más apagado */
+    --accent-blue: #3d4580;
+    --accent-blue-light: #8f98e0;
+    --accent-blue-lighter: #aab2f0;
+
+    --text-muted: #aeb3d6;
+    --shadow-gold: 0 0 18px rgba(255, 200, 0, 0.35);
+    --shadow-gold-strong: 0 0 30px rgba(255, 200, 0, 0.55);
+}
+
+body {
+    background:
+        radial-gradient(ellipse at 50% -10%, #242a58 0%, rgba(36, 42, 88, 0) 55%),
+        var(--bg-tertiary);
+    background-attachment: fixed;
+}
+
+/* ---------- Encabezado ---------- */
+
+.header {
+    background: linear-gradient(135deg, #202547 0%, #151830 100%);
+    border-bottom: none;
+    padding-bottom: calc(var(--spacing-xxl) + 8px);
+}
+.header::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 8px;
+    background: var(--stripe);
+}
+.header h1 {
+    color: var(--gold);
+    text-shadow: 0 0 22px rgba(255, 200, 0, 0.35), 2px 2px 0 rgba(0, 0, 0, 0.6);
+}
+.header-credits { color: var(--text-muted); }
+.credits-name {
+    background: linear-gradient(135deg, #ffc800, #ffe9a0);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+/* ---------- Barra de control: un solo estilo ---------- */
+
+.mode-controls-panel {
+    border: 1px solid rgba(255, 200, 0, 0.14);
+}
+.mode-controls-panel .mode-btn,
+#musicBtn,
+#openRouletteGlobalBtn {
+    background: var(--bg-primary) !important;
+    color: #e9ebff !important;
+    border: 1px solid rgba(255, 200, 0, 0.18) !important;
+    font-weight: 700;
+    box-shadow: none;
+}
+.mode-controls-panel .mode-btn:hover,
+#musicBtn:hover,
+#openRouletteGlobalBtn:hover {
+    background: var(--bg-light) !important;
+    border-color: var(--gold) !important;
+}
+.mode-controls-panel .mode-btn.active,
+#openRouletteGlobalBtn.active-roulette {
+    background: var(--gold) !important;
+    color: var(--ink) !important;
+    border-color: var(--gold) !important;
+    box-shadow: var(--shadow-gold);
+}
+#buzzerBtn.on { border-color: var(--success-green) !important; color: var(--success-green) !important; }
+.tab-btn.active { background: var(--gold) !important; color: var(--ink) !important; }
+
+/* ---------- Tablero ---------- */
+
+.category {
+    background: linear-gradient(180deg, #30365f, #232846);
+    color: var(--gold);
+    border-bottom: 3px solid var(--gold);
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
+}
+.cell {
+    background: linear-gradient(180deg, #2b3162, #202550);
+    color: var(--gold);
+    border: 2px solid rgba(255, 200, 0, 0.16);
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+}
+.cell:hover {
+    background: linear-gradient(180deg, #ffd84d, #ffc800);
+    color: var(--ink);
+    border-color: var(--gold-lighter);
+    text-shadow: none;
+    box-shadow: var(--shadow-gold-strong);
+}
+.cell.used {
+    background: var(--bg-secondary);
+    border-color: transparent;
+    text-shadow: none;
+}
+.cell.used:hover { background: var(--bg-secondary); box-shadow: none; }
+body.view-announcer .cell:hover { background: linear-gradient(180deg, #2b3162, #202550); color: var(--gold); box-shadow: none; border-color: rgba(255, 200, 0, 0.16); text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5); }
+
+/* ---------- Marcador: cada uno con su color ---------- */
+
+.player-card-name { color: var(--card-color, var(--text-white)); }
+.player-name { color: var(--p-color, var(--text-white)); }
+
+/* ---------- Modal de pregunta ---------- */
+
+.modal-content {
+    --pad: clamp(15px, 3vw, 30px);
+    background: linear-gradient(160deg, #222748 0%, #181b34 100%);
+    border: 1px solid rgba(255, 200, 0, 0.14);
+}
+#categoryTitle {
+    background: linear-gradient(135deg, #ffc800, #ffe9a0);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+.modal-content .value {
+    color: var(--gold);
+    text-shadow: 0 0 22px rgba(255, 200, 0, 0.4);
+}
+
+/* ---------- Presentadora integrada ---------- */
+
+/* Sin caja: parada sobre el borde inferior del modal. */
+.presenter-container {
+    --H: min(66vh, 560px);
+    flex: 0 0 440px;
+    align-self: flex-end;
+    min-height: 0;
+    padding: 0;
+    margin: 0 calc(var(--pad) * -0.5) calc(var(--pad) * -1) 0;
+    position: sticky;
+    bottom: calc(var(--pad) * -1);
+    top: auto;
+    align-items: flex-end;
+    justify-content: center;
+    isolation: isolate;
+    --halo: rgba(255, 200, 0, 0.18);
+}
+.presenter-container[data-mood="correct"] { --halo: rgba(87, 242, 135, 0.38); }
+.presenter-container[data-mood="incorrect"] { --halo: rgba(240, 71, 71, 0.38); }
+
+/* Halo de color detrás: dorado en reposo, verde/rojo al reaccionar. */
+.presenter-container::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 8%;
+    width: 340px;
+    height: 340px;
+    transform: translateX(-50%);
+    background: radial-gradient(circle, var(--halo), transparent 68%);
+    filter: blur(26px);
+    z-index: -1;
+    transition: background 0.4s ease;
+}
+
+.presenter-img {
+    width: auto;
+    max-width: none;
+    height: var(--H);
+    object-fit: contain;
+    object-position: bottom center;
+    border: none;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.55));
+    transform-origin: 50% 100%;
+    animation: presenterEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), presenterBreathe 5s ease-in-out infinite 0.6s;
+}
+.presenter-img:hover { transform: none; box-shadow: none; }
+
+/* Cada dibujo está hecho a distinta escala: se compensa para que el personaje mida lo mismo. */
+.presenter-img[data-pose="tirarCarta"] { height: calc(var(--H) * 1.01); }
+.presenter-img[data-pose="incorrecto"] { height: calc(var(--H) * 1.04); }
+.presenter-img[data-pose="correcto"] { height: calc(var(--H) * 0.84); }
+
+.presenter-img.presenter-pop { animation: presenterPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1), presenterBreathe 5s ease-in-out infinite 0.55s; }
+
+@keyframes presenterEnter {
+    from { opacity: 0; transform: translateY(40px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes presenterBreathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.012); }
+}
+@keyframes presenterPop {
+    0% { transform: scale(0.94) translateY(14px); }
+    60% { transform: scale(1.04) translateY(-4px); }
+    100% { transform: scale(1) translateY(0); }
+}
+
+@media (max-width: 1200px) {
+    .presenter-container { --H: min(60vh, 480px); flex-basis: 380px; padding: 0; }
+    .presenter-img { max-width: none; }
+}
+
+/* Pantallas angostas: la presentadora pasa arriba/abajo, más chica y centrada. */
+@media (max-width: 968px) {
+    .presenter-container {
+        --H: min(40vh, 320px);
+        position: relative;
+        bottom: auto;
+        flex: 0 0 auto;
+        align-self: center;
+        width: 100%;
+        max-height: none;
+        margin: 0 0 calc(var(--pad) * -1);
+        padding: 0;
+    }
+    .presenter-img { height: var(--H); max-height: none; max-width: 100%; width: auto; padding: 0; border-radius: 0; }
+    .presenter-img[data-pose="tirarCarta"] { height: calc(var(--H) * 1.01); }
+    .presenter-img[data-pose="incorrecto"] { height: calc(var(--H) * 1.04); }
+    .presenter-img[data-pose="correcto"] { height: calc(var(--H) * 0.84); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .presenter-img, .presenter-img.presenter-pop { animation: none; }
+}
+
+/* ---------- Textos que antes usaban el azul (ahora más apagado) ---------- */
+
+.player-card h3.player-card-name { color: var(--card-color, var(--text-white)); }
+.board-empty strong { color: var(--gold); }
+.modal-content h2 { color: var(--gold); }
+.editor-content h2, .lr-header h2 { color: var(--gold); }
+.add-question-btn { color: var(--gold-light); }
+.final-question h3 { color: var(--gold); }
+
+/* ---------- Botones del modal y generales ---------- */
+
+.btn:not(.danger):not(.btn-save):not(.btn-pistas):not(.btn-finish-question):not(.btn-timer) {
+    background: var(--bg-light);
+    color: #fff;
+    border: 1px solid rgba(255, 200, 0, 0.3);
+}
+.btn:not(.danger):not(.btn-save):not(.btn-pistas):not(.btn-finish-question):not(.btn-timer):hover:not(:disabled) {
+    background: var(--gold);
+    color: var(--ink);
+    border-color: var(--gold);
+}
+.btn-pistas { background: var(--gold) !important; color: var(--ink) !important; }
+.btn-finish-question {
+    background: transparent !important;
+    color: var(--gold) !important;
+    border: 1px solid var(--gold) !important;
+}
+.btn-finish-question:hover { background: var(--gold) !important; color: var(--ink) !important; }
+.btn:disabled { opacity: 0.45; }
+
+.modal-content .answer.show {
+    background: linear-gradient(180deg, #ffd84d, #ffc800);
+    color: var(--ink);
+    border-color: var(--gold-lighter);
+    box-shadow: var(--shadow-gold-strong);
+}
+
+/* Si una imagen tardara en cargar, no se muestra el texto alternativo suelto. */
+.presenter-img { color: transparent; font-size: 0; }

@@ -3,7 +3,7 @@
    - SweetAlert (CDN): caché después de la primera carga. */
 
 const CACHE = 'jeopardy-uth-v2';
-const CORE = ['./', './index.html', './index.css', './css/extras.css', './buzzer.html', './manifest.webmanifest'];
+const CORE = ['./', './index.html', './index.css', './css/extras.css', './css/theme.css', './buzzer.html', './manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {
     e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));

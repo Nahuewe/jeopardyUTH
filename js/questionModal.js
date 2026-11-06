@@ -10,6 +10,7 @@ import { Effects } from './effects.js';
 
 const $ = (id) => document.getElementById(id);
 const PRESENTER_IMAGES = ['./images/leyendo.png', './images/tirarCarta.png', './images/presentando.png'];
+const REACTION_IMAGES = ['./images/correcto.png', './images/incorrecto.png'];
 
 export class QuestionModal {
     constructor({ state, live, scoring, sync, role }) {
@@ -37,6 +38,13 @@ export class QuestionModal {
         live.on('change', (d) => this.render(d));
         state.on('change', () => this.render(live.data));
         setInterval(() => this.#tickTimer(), 200);
+
+        // Precarga de todas las poses: así la reacción aparece al instante y no se ve el texto "alt".
+        this.poses = new Map();
+        this.poseToken = 0;
+        this.fadeTimer = null;
+        [...PRESENTER_IMAGES, ...REACTION_IMAGES].forEach(src => this.#loadPose(src));
+        this.presenterImg?.addEventListener('error', () => this.#recoverPose());
 
         this.#bindEvents();
         if (!this.admin) sync.on('media', (m) => this.#remoteMedia(m));
@@ -380,23 +388,63 @@ export class QuestionModal {
 
     /* ---------- Presentadora ---------- */
 
+    /** Cambia la pose; data-pose permite compensar la escala de cada dibujo en CSS. */
+    #setPose(src) {
+        const token = ++this.poseToken;
+        const apply = () => {
+            if (token !== this.poseToken) return; // llegó otra pose más nueva
+            this.presenterImg.src = src;
+            this.presenterImg.dataset.pose = src.split('/').pop().replace(/.[a-z]+$/i, '');
+        };
+        const cached = this.poses.get(src);
+        if (cached?.complete && cached.naturalWidth) return apply();
+        // Todavía no cargó: se mantiene la imagen actual hasta que esté lista.
+        this.#loadPose(src).then(ok => { if (ok) apply(); });
+    }
+
+    /** Carga (y cachea) una pose; reintenta una vez si falla. */
+    #loadPose(src, retry = true) {
+        return new Promise(resolve => {
+            const img = new Image();
+            img.onload = () => { this.poses.set(src, img); resolve(true); };
+            img.onerror = () => resolve(retry ? this.#loadPose(src + '?r=' + Date.now(), false) : false);
+            img.src = src;
+        });
+    }
+
+    /** Si la imagen mostrada falla, vuelve a una pose segura en vez de mostrar el texto alt. */
+    #recoverPose() {
+        const safe = [...this.poses.entries()].find(([, i]) => i.complete && i.naturalWidth);
+        if (safe) this.presenterImg.src = safe[0];
+    }
+
+    /** Pequeño rebote cuando la presentadora reacciona. */
+    #pop() {
+        const img = this.presenterImg;
+        img.classList.remove('presenter-pop');
+        void img.offsetWidth;
+        img.classList.add('presenter-pop');
+    }
+
     #updatePresenter(mood) {
         if (!this.presenterImg || this.presenterMood === mood) return;
         this.presenterMood = mood;
-        if (mood === 'correct') { this.#stopPresenter(); this.presenterImg.src = './images/correcto.png'; }
-        else if (mood === 'incorrect') { this.#stopPresenter(); this.presenterImg.src = './images/incorrecto.png'; }
+        this.presenterImg.parentElement.dataset.mood = mood;
+        if (mood !== 'reading') this.#pop();
+        if (mood === 'correct') { this.#stopPresenter(); this.#setPose('./images/correcto.png'); }
+        else if (mood === 'incorrect') { this.#stopPresenter(); this.#setPose('./images/incorrecto.png'); }
         else this.#startPresenter();
     }
 
     #startPresenter() {
         this.#stopPresenter();
         this.presenterIdx = 0;
-        this.presenterImg.src = PRESENTER_IMAGES[0];
+        this.#setPose(PRESENTER_IMAGES[0]);
         this.presenterTimer = setInterval(() => {
             this.presenterImg.classList.add('presenter-fade');
-            setTimeout(() => {
+            this.fadeTimer = setTimeout(() => {
                 this.presenterIdx = (this.presenterIdx + 1) % PRESENTER_IMAGES.length;
-                this.presenterImg.src = PRESENTER_IMAGES[this.presenterIdx];
+                this.#setPose(PRESENTER_IMAGES[this.presenterIdx]);
                 this.presenterImg.classList.remove('presenter-fade');
             }, 200);
         }, 4000);
@@ -404,7 +452,9 @@ export class QuestionModal {
 
     #stopPresenter() {
         clearInterval(this.presenterTimer);
+        clearTimeout(this.fadeTimer); // evita que una rotación pendiente pise la reacción
         this.presenterTimer = null;
+        this.presenterImg?.classList.remove('presenter-fade');
     }
 
     /* ---------- Temporizador ---------- */
