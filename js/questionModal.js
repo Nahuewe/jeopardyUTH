@@ -7,6 +7,7 @@
 import { Utils, esc, uid, DEFAULT_AVATAR } from './utils.js';
 import { MediaStore } from './media.js';
 import { Effects } from './effects.js';
+import { Voice } from './voice.js';
 
 const $ = (id) => document.getElementById(id);
 const PRESENTER_IMAGES = ['./images/leyendo.png', './images/tirarCarta.png', './images/presentando.png'];
@@ -46,9 +47,18 @@ export class QuestionModal {
         [...PRESENTER_IMAGES, ...REACTION_IMAGES].forEach(src => this.#loadPose(src));
         this.presenterImg?.addEventListener('error', () => this.#recoverPose());
 
+        Voice.onSpeaking = (on) => document.querySelector('.presenter-container')?.classList.toggle('speaking', on);
+
         this.#bindEvents();
         if (!this.admin) sync.on('media', (m) => this.#remoteMedia(m));
-        else sync.on('presence', () => this.#applyMute());
+        else sync.on('presence', () => { this.#applyMute(); if (this.sync.announcerPresent) Voice.stop(); });
+    }
+
+    /** Habla el anunciador; el admin solo si no hay anunciador abierto. */
+    #speakQuestion(text) {
+        const s = this.state.settings;
+        if (!s.voiceEnabled || (this.admin && this.sync.announcerPresent)) return;
+        Voice.speak(text, { name: s.voiceName, rate: s.voiceRate });
     }
 
     /* =========================================================
@@ -116,6 +126,7 @@ export class QuestionModal {
         if (!round || !data) return;
 
         if (this.key !== q.key) this.#startQuestion(q);
+        if (q.answerShown || q.result) Voice.stop();
 
         const bet = q.phase === 'bet';
         $('categoryTitle').textContent = round.categories[q.col] ?? '';
@@ -152,6 +163,7 @@ export class QuestionModal {
     #teardown() {
         this.typing?.cancel();
         this.typing = null;
+        Voice.stop();
         this.optionsToken++;
         this.key = null;
         this.typedKey = null;
@@ -173,6 +185,7 @@ export class QuestionModal {
             this.#applyMute();
         };
 
+        this.#speakQuestion(data.question);
         this.typing = Utils.typeWrite(box, data.question || '(Sin texto)', {
             onDone: () => {
                 if (this.key !== q.key) return;

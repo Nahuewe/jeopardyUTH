@@ -5,6 +5,8 @@
 
 import { Dialog } from './dialog.js';
 import { Effects } from './effects.js';
+import { Voice } from './voice.js';
+import { esc } from './utils.js';
 
 export class Settings {
     constructor(state) {
@@ -35,7 +37,26 @@ export class Settings {
                     <label class="set-row"><span>Puntos por acierto en Ronda Relámpago</span>
                         <input type="number" id="setLightning" min="0" step="50" value="${s.lightningPoints}"></label>
                     ${check('setSfx', 'Efectos de sonido', s.sfx)}
+                    ${check('setVoice', '🎙️ La presentadora lee las preguntas', s.voiceEnabled,
+                        Voice.supported ? 'Habla el anunciador (o el admin si no hay anunciador). Las voces dependen del navegador: en Edge suenan mejor.' : 'Este navegador no soporta voz.')}
+                    <label class="set-row"><span>Voz<small>Las voces se cargan del dispositivo donde se muestra el juego.</small></span>
+                        <select id="setVoiceName">
+                            <option value="">Automática (femenina en español)</option>
+                            ${Voice.list().map(v => `<option value="${esc(v.name)}" ${v.name === s.voiceName ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}
+                        </select></label>
+                    <label class="set-row"><span>Velocidad de la voz</span>
+                        <input type="number" id="setVoiceRate" min="0.6" max="1.6" step="0.1" value="${s.voiceRate}"></label>
+                    <button type="button" class="mini-btn" id="setVoiceTest">▶ Probar voz</button>
                 </div>`,
+            didOpen: () => {
+                document.getElementById('setVoiceTest')?.addEventListener('click', () => {
+                    Voice.speak('Hola, soy la presentadora. Esta es la pregunta de prueba para el concursillo.', {
+                        name: document.getElementById('setVoiceName').value,
+                        rate: document.getElementById('setVoiceRate').value
+                    });
+                });
+            },
+            willClose: () => Voice.stop(),
             showCancelButton: true,
             confirmButtonText: 'Guardar',
             cancelButtonText: 'Cancelar',
@@ -49,7 +70,10 @@ export class Settings {
                 deductOnWrong: document.getElementById('setDeduct').checked,
                 dailyDoubleEnabled: document.getElementById('setDD').checked,
                 lightningPoints: Math.max(0, parseInt(document.getElementById('setLightning').value, 10) || 0),
-                sfx: document.getElementById('setSfx').checked
+                sfx: document.getElementById('setSfx').checked,
+                voiceEnabled: document.getElementById('setVoice').checked,
+                voiceName: document.getElementById('setVoiceName').value,
+                voiceRate: Math.min(1.6, Math.max(0.6, parseFloat(document.getElementById('setVoiceRate').value) || 1))
             })
         });
         if (!res.isConfirmed) return;

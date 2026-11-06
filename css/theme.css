@@ -287,3 +287,14 @@ body.view-announcer .cell:hover { background: linear-gradient(180deg, #2b3162, #
 
 /* Si una imagen tardara en cargar, no se muestra el texto alternativo suelto. */
 .presenter-img { color: transparent; font-size: 0; }
+
+/* Mientras la presentadora lee la pregunta, el halo late. */
+.presenter-container.speaking { --halo: rgba(255, 200, 0, 0.42); }
+.presenter-container.speaking::after { animation: presenterSpeak 0.9s ease-in-out infinite; }
+@keyframes presenterSpeak {
+    0%, 100% { transform: translateX(-50%) scale(1); }
+    50% { transform: translateX(-50%) scale(1.14); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .presenter-container.speaking::after { animation: none; }
+}

@@ -18,7 +18,10 @@ export const DEFAULT_SETTINGS = Object.freeze({
     sfx: true,
     buzzFoulSeconds: 3,        // castigo por apretar el buzzer antes de que abra (0 = solo se ignora)
     autoCloseOnCorrect: false, // cerrar sola la pregunta tras un acierto
-    buzzerEnabled: false,   // buzzers remotos activos al abrir la app
+    voiceEnabled: false,    // la presentadora lee las preguntas en voz alta
+    voiceName: '',          // voz elegida ('' = la mejor voz femenina en español)
+    voiceRate: 1,
+    buzzerEnabled: false,  // buzzers remotos activos al abrir la app
     roomCode: '',           // código de sala del buzzer
     publicUrl: ''           // URL pública donde está publicada la app (para el link del buzzer)
 });
