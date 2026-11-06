@@ -2,8 +2,8 @@
    - Archivos propios: red primero, caché como respaldo (así no se queda con código viejo).
    - SweetAlert (CDN): caché después de la primera carga. */
 
-const CACHE = 'jeopardy-uth-v2';
-const CORE = ['./', './index.html', './index.css', './css/extras.css', './css/theme.css', './buzzer.html', './manifest.webmanifest'];
+const CACHE = 'jeopardy-uth-v3';
+const CORE = ['./', './index.html', './index.css', './css/extras.css', './css/theme.css', './css/mobile.css', './buzzer.html', './manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {
     e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
