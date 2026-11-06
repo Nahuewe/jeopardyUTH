@@ -179,7 +179,7 @@ export class QuestionModal {
                 attachMedia();
                 const cur = this.live.data;
                 // Terminó de leerse la pregunta: se habilitan los buzzers remotos.
-                if (this.admin && cur.q?.key === q.key && !cur.q.buzzOpen && !cur.q.result) this.live.patchQ({ buzzOpen: true });
+                if (this.admin && cur.q?.key === q.key && !cur.q.buzzOpen && !cur.q.result) this.#armBuzzers();
                 if (this.admin && !cur.q?.timerOff && this.state.settings.autoTimer
                     && !cur.timer && cur.q?.key === q.key && !cur.q.result) {
                     this.startTimer();
@@ -537,6 +537,7 @@ export class QuestionModal {
     #clearTimeouts() {
         this.timeouts.forEach(clearTimeout);
         this.timeouts.clear();
+        this.armHandle = null;
     }
 
     open(col, row) {
@@ -591,21 +592,41 @@ export class QuestionModal {
         }
     }
 
+    /** Abre los buzzers con una demora al azar de 1 a 3 s: antes de eso, apretar es falta. */
+    #armBuzzers() {
+        const key = this.live.data.q?.key;
+        clearTimeout(this.armHandle);
+        this.armHandle = this.#later(() => {
+            this.armHandle = null;
+            const cur = this.live.data.q;
+            if (cur?.key === key && !cur.buzzOpen && !cur.result) this.live.patchQ({ buzzOpen: true });
+        }, 1000 + Math.random() * 2000);
+    }
+
     toggleBuzzers() {
         const q = this.live.data.q;
-        if (q && q.phase === 'open') this.live.patchQ({ buzzOpen: !q.buzzOpen });
+        if (!q || q.phase !== 'open') return;
+        if (q.buzzOpen || this.armHandle) {
+            clearTimeout(this.armHandle);
+            this.armHandle = null;
+            if (q.buzzOpen) this.live.patchQ({ buzzOpen: false });
+        } else {
+            this.#armBuzzers();
+        }
     }
 
     #foul(pid) {
         const q = this.live.data.q;
-        const secs = this.state.settings.buzzFoulSeconds;
-        if (!secs) return;
+        const base = this.state.settings.buzzFoulSeconds;
+        if (!base) return;
+        // Castigo base + 1 a 3 s al azar en cada apretón, para que no se pueda calcular el momento de volver a tocar.
+        const secs = Math.round((base + 1 + Math.random() * 2) * 10) / 10;
         const fouls = { ...(q.fouls || {}), [pid]: Date.now() + secs * 1000 };
         const first = !(q.fouls?.[pid] > Date.now());
         this.live.patchQ({ fouls, lastFoul: { pid, at: Date.now() } });
         if (first) {
             Effects.sound('timeup');
-            Effects.toast(`⚠️ ${this.state.participantById(pid)?.name} se adelantó (-${secs}s)`, 'error');
+            Effects.toast(`⚠️ ${this.state.participantById(pid)?.name} se adelantó (-${secs.toFixed(1)}s)`, 'error');
         }
         this.#later(() => {
             const cur = this.live.data.q;

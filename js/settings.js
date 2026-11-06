@@ -27,7 +27,7 @@ export class Settings {
                     <label class="set-row"><span>Segundos por pregunta</span>
                         <input type="number" id="setTimerSeconds" min="5" max="300" step="5" value="${s.timerSeconds}"></label>
                     ${check('setAutoTimer', 'Iniciar el timer al terminar de escribirse la pregunta', s.autoTimer)}
-                    <label class="set-row"><span>Castigo por adelantarse con el buzzer (seg)<small>Si apretás antes de que abran, quedás bloqueado ese tiempo. 0 = solo se ignora.</small></span>
+                    <label class="set-row"><span>Castigo por adelantarse con el buzzer (seg)<small>Si apretás antes de que abran, quedás bloqueado este tiempo + 1 a 3 s al azar (se renueva en cada apretón). 0 = solo se ignora.</small></span>
                         <input type="number" id="setFoul" min="0" max="30" step="1" value="${s.buzzFoulSeconds}"></label>
                     ${check('setAutoClose', 'Cerrar sola la pregunta tras un acierto', s.autoCloseOnCorrect, 'Si está apagado, la cerrás vos con Terminar/Cerrar.')}
                     ${check('setDeduct', 'Restar puntos al fallar', s.deductOnWrong, 'Si está apagado, fallar solo bloquea al participante.')}
