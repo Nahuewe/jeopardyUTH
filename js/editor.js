@@ -42,8 +42,14 @@ export class Editor {
             const f = e.target.dataset?.field;
             if (!f || !this.draft) return;
             if (f === 'roundMode') this.draft.mode = e.target.value;
-            else if (f === 'dailyDouble') this.#q(e.target).dailyDouble = e.target.checked;
+            else if (f === 'dailyDouble') { this.#q(e.target).dailyDouble = e.target.checked; this.render(); }
             else if (f === 'media') await this.#upload(e.target);
+        });
+
+        // Clic en el fondo oscuro = cerrar (pide confirmar si hay cambios sin guardar).
+        this.modal.addEventListener('mousedown', (e) => { this.backdropDown = e.target === this.modal; });
+        this.modal.addEventListener('click', (e) => {
+            if (e.target === this.modal && this.backdropDown) this.requestClose();
         });
     }
 
@@ -56,16 +62,38 @@ export class Editor {
     async open() {
         this.draft = structuredClone(this.state.round);
         await MediaStore.preload(this.draft.questions.flat().flatMap(q => [q.media1, q.media2]));
-        document.getElementById('editorTitle').textContent = `Editor de: ${this.state.round.name}`;
+        this.snapshot = JSON.stringify(this.draft);
+        document.getElementById('editorTitle').textContent = this.state.round.name;
         document.getElementById('roundName').value = this.draft.name;
         document.getElementById('roundMode').value = this.draft.mode;
         this.render();
         this.modal.classList.add('active');
+        document.body.classList.add('modal-open');
+        this.modal.querySelector('.ed-body').scrollTop = 0;
     }
 
     close() {
         this.modal.classList.remove('active');
+        document.body.classList.remove('modal-open');
         this.draft = null;
+    }
+
+    get dirty() {
+        return !!this.draft && JSON.stringify(this.draft) !== this.snapshot;
+    }
+
+    /** X, Cancelar, Esc y clic afuera: si hay cambios sin guardar, se pregunta antes de descartarlos. */
+    async requestClose() {
+        if (!this.draft) return;
+        if (this.dirty) {
+            const ok = await Dialog.confirm({
+                icon: 'warning', title: '¿Descartar los cambios?',
+                text: 'Tenés cambios sin guardar en esta ronda.',
+                confirmText: 'Descartar', cancelText: 'Seguir editando'
+            });
+            if (!ok) return;
+        }
+        this.close();
     }
 
     get isOpen() {
@@ -75,66 +103,108 @@ export class Editor {
     /* ---------- Render ---------- */
 
     render() {
-        const scroll = this.modal.querySelector('.editor-content')?.scrollTop ?? 0;
+        const body = this.modal.querySelector('.ed-body');
+        const scroll = body?.scrollTop ?? 0;
         this.list.innerHTML = this.draft.categories.map((c, i) => this.#categoryHTML(c, i)).join('')
-            || '<p class="edit-info">Esta ronda no tiene categorías todavía.</p>';
-        const content = this.modal.querySelector('.editor-content');
-        if (content) content.scrollTop = scroll;
+            || '<p class="ed-empty">Esta ronda no tiene categorías todavía. Agregá una con "＋ Categoría".</p>';
+        if (body) body.scrollTop = scroll;
+        this.#summary();
+    }
+
+    #summary() {
+        const qs = this.draft.questions.flat();
+        const dd = qs.filter(q => q.dailyDouble).length;
+        const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+        document.getElementById('editorSummary').textContent =
+            `${plural(this.draft.categories.length, 'categoría', 'categorías')} · ${plural(qs.length, 'pregunta', 'preguntas')}`
+            + (dd ? ` · ${plural(dd, 'Daily Double', 'Daily Doubles')}` : '');
     }
 
     #categoryHTML(category, c) {
         const questions = this.draft.questions[c] || [];
         return `
-            <div class="category-editor">
-                <div class="category-header">
-                    <input type="text" value="${esc(category)}" data-field="category" data-cat="${c}" aria-label="Nombre de la categoría" placeholder="Nombre de la categoría">
-                    <button data-action="ed-move-cat" data-cat="${c}" data-dir="-1" title="Subir" aria-label="Subir categoría">⬆</button>
-                    <button data-action="ed-move-cat" data-cat="${c}" data-dir="1" title="Bajar" aria-label="Bajar categoría">⬇</button>
-                    <button data-action="ed-sort" data-cat="${c}" title="Ordenar preguntas por puntos">↕ Ordenar</button>
-                    <button data-action="ed-remove-category" data-cat="${c}">Eliminar</button>
+            <section class="ed-cat">
+                <div class="ed-cat-head">
+                    <span class="ed-cat-num">${c + 1}</span>
+                    <input type="text" class="ed-cat-name" value="${esc(category)}" data-field="category" data-cat="${c}" aria-label="Nombre de la categoría" placeholder="Nombre de la categoría">
+                    <div class="ed-tools">
+                        <button type="button" class="ed-icon" data-action="ed-move-cat" data-cat="${c}" data-dir="-1" title="Subir categoría" aria-label="Subir categoría">⬆</button>
+                        <button type="button" class="ed-icon" data-action="ed-move-cat" data-cat="${c}" data-dir="1" title="Bajar categoría" aria-label="Bajar categoría">⬇</button>
+                        <button type="button" class="ed-icon ed-icon-text" data-action="ed-sort" data-cat="${c}" title="Ordenar preguntas por puntos">↕ Ordenar</button>
+                        <button type="button" class="ed-icon ed-icon-danger" data-action="ed-remove-category" data-cat="${c}" title="Eliminar categoría" aria-label="Eliminar categoría">🗑</button>
+                    </div>
                 </div>
-                ${questions.map((q, i) => this.#questionHTML(q, c, i)).join('')}
-                <button class="add-question-btn" data-action="ed-add-question" data-cat="${c}">+ Agregar Pregunta</button>
-            </div>`;
+                <div class="ed-qlist">
+                    ${questions.map((q, i) => this.#questionHTML(q, c, i)).join('')}
+                </div>
+                <button type="button" class="ed-add-q" data-action="ed-add-question" data-cat="${c}">＋ Agregar pregunta</button>
+            </section>`;
     }
 
     #questionHTML(q, c, i) {
         const at = `data-cat="${c}" data-q="${i}"`;
         return `
-            <div class="question-item">
-                <div class="question-header">
-                    <h4>Pregunta ${i + 1}</h4>
-                    <div class="question-tools">
-                        <button data-action="ed-move-q" ${at} data-dir="-1" aria-label="Subir pregunta">⬆</button>
-                        <button data-action="ed-move-q" ${at} data-dir="1" aria-label="Bajar pregunta">⬇</button>
-                        <button class="btn-danger" data-action="ed-remove-question" ${at}>Eliminar</button>
+            <article class="ed-q ${q.dailyDouble ? 'is-dd' : ''}">
+                <div class="ed-q-head">
+                    <span class="ed-q-num">${i + 1}</span>
+                    <span class="ed-q-points">$${q.value}${q.dailyDouble ? ` <em>→ $${q.value * 2}</em>` : ''}</span>
+                    ${q.dailyDouble ? '<span class="ed-badge">🎲 Daily Double x2</span>' : ''}
+                    <div class="ed-tools">
+                        <button type="button" class="ed-icon" data-action="ed-move-q" ${at} data-dir="-1" title="Subir pregunta" aria-label="Subir pregunta">⬆</button>
+                        <button type="button" class="ed-icon" data-action="ed-move-q" ${at} data-dir="1" title="Bajar pregunta" aria-label="Bajar pregunta">⬇</button>
+                        <button type="button" class="ed-icon ed-icon-danger" data-action="ed-remove-question" ${at} title="Eliminar pregunta" aria-label="Eliminar pregunta">🗑</button>
                     </div>
                 </div>
-                <label>Puntos:</label>
-                <input type="number" value="${q.value}" data-field="value" ${at} min="0" step="100">
-                <label class="dd-check"><input type="checkbox" data-field="dailyDouble" ${at} ${q.dailyDouble ? 'checked' : ''}> 🎲 Daily Double (el jugador apuesta)</label>
-                <label>Pregunta:</label>
-                <textarea data-field="question" ${at}>${esc(q.question)}</textarea>
-                <label>Respuesta:</label>
-                <textarea data-field="answer" ${at}>${esc(q.answer)}</textarea>
-                <label>Opciones múltiples:
-                    <button type="button" class="mini-btn" data-action="ed-tf" ${at}>Verdadero/Falso</button></label>
-                <textarea data-field="multipleChoice" ${at} placeholder="Ej: a) Opción 1 / b) Opción 2 / c) Opción 3 (separar con '/')">${esc(q.multipleChoice)}</textarea>
-                <label>⏱️ Timer propio (segundos, 0 = el de Ajustes):</label>
-                <input type="number" value="${q.timer || 0}" data-field="timer" ${at} min="0" max="600" step="5" style="width:120px;">
-                ${this.#mediaHTML(q, c, i, 'media1')}
-                ${this.#mediaHTML(q, c, i, 'media2')}
-            </div>`;
+
+                <div class="ed-row">
+                    <label class="ed-field ed-field-sm">
+                        <span class="ed-label">Puntos</span>
+                        <input type="number" value="${q.value}" data-field="value" ${at} min="0" step="100">
+                    </label>
+                    <label class="ed-field ed-field-sm">
+                        <span class="ed-label">⏱ Timer propio (seg)</span>
+                        <input type="number" value="${q.timer || 0}" data-field="timer" ${at} min="0" max="600" step="5" title="0 = usa el de Ajustes">
+                    </label>
+                    <label class="ed-switch" title="La pregunta vale el doble de puntos">
+                        <input type="checkbox" data-field="dailyDouble" ${at} ${q.dailyDouble ? 'checked' : ''}>
+                        <span class="ed-switch-ui" aria-hidden="true"></span>
+                        <span>🎲 Daily Double <small>vale el doble</small></span>
+                    </label>
+                </div>
+
+                <div class="ed-row ed-row-2">
+                    <label class="ed-field">
+                        <span class="ed-label">Pregunta</span>
+                        <textarea data-field="question" ${at} rows="3" placeholder="Escribí la pregunta…">${esc(q.question)}</textarea>
+                    </label>
+                    <label class="ed-field">
+                        <span class="ed-label">Respuesta</span>
+                        <textarea data-field="answer" ${at} rows="3" placeholder="Respuesta correcta…">${esc(q.answer)}</textarea>
+                    </label>
+                </div>
+
+                <div class="ed-field">
+                    <span class="ed-label">Opciones múltiples (pistas)
+                        <button type="button" class="ed-chip" data-action="ed-tf" ${at}>Verdadero / Falso</button>
+                    </span>
+                    <textarea data-field="multipleChoice" ${at} rows="2" aria-label="Opciones múltiples" placeholder="Ej: a) Opción 1 / b) Opción 2 / c) Opción 3 (separar con '/')">${esc(q.multipleChoice)}</textarea>
+                </div>
+
+                <div class="ed-row ed-row-2 ed-media-row">
+                    ${this.#mediaHTML(q, c, i, 'media1')}
+                    ${this.#mediaHTML(q, c, i, 'media2')}
+                </div>
+            </article>`;
     }
 
     #mediaHTML(q, c, i, slot) {
         const media = q[slot];
         return `
-            <div class="media-section">
-                <label>Multimedia ${slot === 'media1' ? 1 : 2} (imagen / audio / video):</label>
+            <div class="ed-media">
+                <span class="ed-label">Multimedia ${slot === 'media1' ? 1 : 2} <small>imagen · audio · video</small></span>
                 <input type="file" accept="image/*,video/*,audio/*" data-field="media" data-cat="${c}" data-q="${i}" data-slot="${slot}">
-                ${media ? `<div class="media-preview">${MediaStore.previewHtml(media, `ed-${c}-${i}-${slot}`)}
-                    <button data-action="ed-remove-media" data-cat="${c}" data-q="${i}" data-slot="${slot}">Quitar</button></div>` : ''}
+                ${media ? `<div class="ed-media-preview">${MediaStore.previewHtml(media, `ed-${c}-${i}-${slot}`)}
+                    <button type="button" class="ed-chip ed-chip-danger" data-action="ed-remove-media" data-cat="${c}" data-q="${i}" data-slot="${slot}">Quitar</button></div>` : ''}
             </div>`;
     }
 

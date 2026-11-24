@@ -33,7 +33,7 @@ export class Settings {
                         <input type="number" id="setFoul" min="0" max="30" step="1" value="${s.buzzFoulSeconds}"></label>
                     ${check('setAutoClose', 'Cerrar sola la pregunta tras un acierto', s.autoCloseOnCorrect, 'Si está apagado, la cerrás vos con Terminar/Cerrar.')}
                     ${check('setDeduct', 'Restar puntos al fallar', s.deductOnWrong, 'Si está apagado, fallar solo bloquea al participante.')}
-                    ${check('setDD', 'Daily Double habilitada', s.dailyDoubleEnabled, 'Las casillas marcadas piden apuesta.')}
+                    ${check('setDD', 'Daily Double habilitada', s.dailyDoubleEnabled, 'Las casillas marcadas valen el doble de puntos.')}
                     <label class="set-row"><span>Puntos por acierto en Ronda Relámpago</span>
                         <input type="number" id="setLightning" min="0" step="50" value="${s.lightningPoints}"></label>
                     ${check('setSfx', 'Efectos de sonido', s.sfx)}

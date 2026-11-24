@@ -107,7 +107,7 @@ export class Podium {
                 ${this.#podiumBlock('Jugadores', s.players)}
                 ${this.#podiumBlock('Equipos', s.teams)}
                 ${this.#categoryHighlights()}
-                ${this.admin ? '<div class="pod-actions"><button class="btn" data-action="podium-close">Volver al tablero</button></div>' : ''}
+                ${this.admin ? '<div class="pod-actions"><button class="btn" data-action="open-credits">Créditos</button> <button class="btn" data-action="podium-close">Volver al tablero</button></div>' : ''}
             </div>`;
     }
 }

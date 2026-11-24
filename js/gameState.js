@@ -26,6 +26,28 @@ export const DEFAULT_SETTINGS = Object.freeze({
     publicUrl: ''           // URL pública donde está publicada la app (para el link del buzzer)
 });
 
+/** Créditos finales (los muestra el admin al terminar el concursillo). */
+export const DEFAULT_CREDITS = Object.freeze({
+    title: 'Concursillo · UTH Edition',
+    entries: [
+        { role: 'Desarrollador', name: 'Nahue' },
+        { role: 'Artista', name: 'Zonoro' },
+        { role: 'Anunciador', name: 'Canon' },
+        { role: 'IA', name: 'Claude' }
+    ],
+    images: [],                 // [{ type:'image', mediaId }]
+    thanks: '¡Gracias por jugar!'
+});
+
+export const normalizeCredits = (c) => ({
+    title: String(c?.title ?? DEFAULT_CREDITS.title),
+    entries: Array.isArray(c?.entries)
+        ? c.entries.map(e => ({ role: String(e.role ?? ''), name: String(e.name ?? '') }))
+        : DEFAULT_CREDITS.entries.map(e => ({ ...e })),
+    images: Array.isArray(c?.images) ? c.images.filter(m => m?.mediaId) : [],
+    thanks: String(c?.thanks ?? DEFAULT_CREDITS.thanks)
+});
+
 export const makeQuestion = (value = 100) => ({
     value,
     question: '',
@@ -58,6 +80,7 @@ export class GameState extends EventBus {
         this.players = [];
         this.teams = [];
         this.settings = { ...DEFAULT_SETTINGS };
+        this.credits = normalizeCredits();
         this.session = { turnId: null, stats: {}, log: [] };
         this.#save = Utils.debounce(() => Storage.saveGame(this.toData()), 200);
         this.#ensureRounds();
@@ -131,6 +154,7 @@ export class GameState extends EventBus {
             color: t.color || Utils.generateColor(), memberIds: t.memberIds || []
         }));
         this.settings = { ...DEFAULT_SETTINGS, ...(data.settings || {}) };
+        this.credits = normalizeCredits(data.credits ?? this.credits);
         this.session = {
             turnId: data.session?.turnId ?? null,
             stats: data.session?.stats ?? {},
@@ -146,6 +170,7 @@ export class GameState extends EventBus {
             players: this.players,
             teams: this.teams,
             settings: this.settings,
+            credits: this.credits,
             session: this.session
         };
     }

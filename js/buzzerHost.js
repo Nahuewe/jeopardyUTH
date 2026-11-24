@@ -195,7 +195,7 @@ export class BuzzerHost {
         const player = this.state.players.find(p => p.id === entry.playerId);
         const base = { t: 'status', name: player?.name ?? '', color: player?.color ?? '#5865f2', score: player?.score ?? 0 };
 
-        if (l.screen !== 'question' || !q || q.phase !== 'open' || q.dd || q.result) return { ...base, state: 'idle' };
+        if (l.screen !== 'question' || !q || q.phase !== 'open' || q.result) return { ...base, state: 'idle' };
 
         const target = this.#target(entry.playerId);
         if (!target) return { ...base, state: 'noteam' };

@@ -11,7 +11,8 @@ import { LiveState } from './liveState.js';
 import { Storage } from './storage.js';
 import { MediaStore } from './media.js';
 import { Sync } from './sync.js';
-import { Effects } from './effects.js';
+import { Effects, SOUNDBOARD } from './effects.js';
+import { TRACKS, trackById } from './music.js';
 import { Dialog } from './dialog.js';
 import { Scoring } from './scoring.js';
 import { Board } from './board.js';
@@ -19,6 +20,7 @@ import { Scoreboard } from './scoreboard.js';
 import { QuestionModal } from './questionModal.js';
 import { LightningRound } from './lightningRound.js';
 import { Podium } from './podium.js';
+import { Credits } from './credits.js';
 import { Roulette } from './roulette.js';
 import { Participants } from './participants.js';
 import { Editor } from './editor.js';
@@ -50,6 +52,7 @@ class App {
         this.modal = new QuestionModal(deps);
         this.lightning = new LightningRound(deps);
         this.podium = new Podium(deps);
+        this.credits = new Credits(deps);
         this.roulette = new Roulette(deps);
 
         if (this.admin) {
@@ -67,7 +70,7 @@ class App {
     async init() {
         const saved = await Storage.loadGame();
         if (saved) this.state.load(saved);
-        await MediaStore.preload(allMedia(this.state.rounds));
+        await MediaStore.preload([...allMedia(this.state.rounds), ...this.state.credits.images]);
 
         this.state.on('change', () => this.renderAll());
         this.live.on('change', () => this.reconcileMusic());
@@ -85,7 +88,7 @@ class App {
 
     #initAdmin() {
         Storage.requestPersistence();
-        Storage.collectGarbage(MediaStore.collectIds(this.state.rounds));
+        Storage.collectGarbage(MediaStore.collectIds(this.state.rounds, this.state.credits.images));
         this.setMode('game');
 
         document.addEventListener('click', (e) => {
@@ -93,6 +96,14 @@ class App {
             if (el && !el.disabled) this.#dispatch(el.dataset.action, el, e);
         });
         document.addEventListener('keydown', (e) => this.#onKey(e));
+
+        const trackSel = $('musicTrack');
+        if (trackSel) {
+            trackSel.innerHTML = TRACKS.map(t => `<option value="${t.id}">${esc(t.label)}</option>`).join('');
+            trackSel.addEventListener('change', () => {
+                this.live.set({ music: { ...this.live.data.music, track: +trackSel.value } });
+            });
+        }
 
         $('musicVolume')?.addEventListener('input', (e) => {
             this.live.set({ music: { ...this.live.data.music, volume: parseFloat(e.target.value) } });
@@ -158,6 +169,19 @@ class App {
         this.state.commit({ persist: false });
     }
 
+    #toggleSfxBoard(force) {
+        const board = $('sfxBoard'), btn = $('sfxBtn');
+        if (!board) return;
+        if (!board.childElementCount) {
+            board.innerHTML = SOUNDBOARD.map(s =>
+                `<button type="button" class="mode-btn" data-action="sfx" data-sfx="${s.id}">${s.label}</button>`).join('')
+                + '<button type="button" class="mode-btn sfx-stop" data-action="sfx" data-sfx="stopsfx">⏹ Detener efectos</button>';
+        }
+        const open = force ?? board.hidden;
+        board.hidden = !open;
+        btn?.setAttribute('aria-expanded', String(open));
+    }
+
     toggleMusic() {
         const m = this.live.data.music;
         this.live.set({ music: { ...m, playing: !m.playing } });
@@ -176,11 +200,17 @@ class App {
             case 'mode-game': return this.setMode('game');
             case 'mode-edit': return this.setMode('edit');
             case 'toggle-music': return this.toggleMusic();
+            case 'toggle-sfxboard': return this.#toggleSfxBoard();
+            case 'sfx': return Effects.sound(el.dataset.sfx);
             case 'toggle-ui': return this.toggleUI();
             case 'undo': return this.scoring.undo();
             case 'open-settings': return this.settings.open();
             case 'open-podium': return this.podium.open();
             case 'podium-close': return this.podium.close();
+            case 'open-credits': return this.credits.open();
+            case 'credits-replay': return this.credits.replay();
+            case 'credits-close': return this.credits.close();
+            case 'edit-credits': return this.credits.edit();
             case 'open-announcer': return this.openAnnouncer();
             case 'show-help': return this.showHelp();
 
@@ -202,7 +232,6 @@ class App {
             case 'q-close': return m.close();
             case 'q-correct': return m.correct(id);
             case 'q-wrong': return m.wrong(id);
-            case 'q-bet-confirm': return m.confirmBet();
             case 'q-buzz-open': return m.toggleBuzzers();
 
             // Buzzers remotos
@@ -234,7 +263,7 @@ class App {
             // Editor y rondas
             case 'edit-questions': return this.editor.open();
             case 'ed-save': return this.editor.save();
-            case 'ed-cancel': return this.editor.close();
+            case 'ed-cancel': return this.editor.requestClose();
             case 'new-round': return this.editor.addRound();
             case 'duplicate-round': return this.editor.duplicateRound();
             case 'delete-round': return this.editor.deleteRound();
@@ -256,6 +285,8 @@ class App {
 
     #onKey(e) {
         const t = e.target;
+        if (e.key === 'Escape' && this.editor.isOpen && !Dialog.isOpen()) { e.preventDefault(); setTimeout(() => this.editor.requestClose(), 0); return; }
+        if (e.key === 'Escape' && this.admin && $('sfxBoard') && !$('sfxBoard').hidden) this.#toggleSfxBoard(false);
         const typing = t.matches?.('input, textarea, select, [contenteditable="true"]');
         if (typing || Dialog.isOpen() || this.editor.isOpen || e.altKey) return;
 
@@ -309,6 +340,7 @@ class App {
         if (key === 'escape') {
             if (this.live.data.screen === 'lightning') this.lightning.close();
             else if (this.live.data.screen === 'podium') this.podium.close();
+            else if (this.live.data.screen === 'credits') this.credits.close();
         }
     }
 
@@ -345,7 +377,7 @@ class App {
         const enqueue = (fn) => { this.queue = this.queue.then(fn).catch(e => console.error(e)); };
 
         this.sync.on('state', (data) => enqueue(async () => {
-            await MediaStore.preload(allMedia(data.rounds));
+            await MediaStore.preload([...allMedia(data.rounds), ...(data.credits?.images || [])]);
             this.state.load(data);
             this.state.commit({ persist: false });
         }));
@@ -382,9 +414,18 @@ class App {
     reconcileMusic() {
         const audio = $('gameMusic');
         if (!audio) return;
-        const { playing, volume } = this.live.data.music;
+        const { playing, volume, track = 0 } = this.live.data.music;
         const iPlay = this.admin ? !this.sync.announcerPresent : true;
         audio.volume = volume;
+
+        const src = trackById(track).src;
+        if (audio.dataset.track !== String(track)) {
+            audio.dataset.track = String(track);
+            audio.src = src;
+            audio.load();
+        }
+        const sel = $('musicTrack');
+        if (sel && sel.value !== String(track)) sel.value = String(track);
 
         const slider = $('musicVolume');
         if (slider && slider.value !== String(volume)) slider.value = volume;

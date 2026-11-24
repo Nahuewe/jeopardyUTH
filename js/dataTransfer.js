@@ -115,7 +115,7 @@ export class DataTransfer {
             if (res.isDenied) {
                 this.state.history = [];
                 this.state.load({ ...data, rounds });
-                await Storage.collectGarbage(MediaStore.collectIds(this.state.rounds));
+                await Storage.collectGarbage(MediaStore.collectIds(this.state.rounds, this.state.credits.images));
             } else {
                 this.state.rounds.push(...rounds);
                 this.state.activeRoundId = rounds[0]?.id ?? this.state.activeRoundId;

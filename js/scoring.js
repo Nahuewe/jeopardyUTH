@@ -129,12 +129,4 @@ export class Scoring {
         return !!label;
     }
 
-    /** Apuesta máxima de una Daily Double para un participante. */
-    maxBet(pid, roundId) {
-        const s = this.state;
-        const p = s.participantById(pid);
-        const round = s.roundById(roundId);
-        const maxValue = Math.max(100, ...round.questions.flat().map(q => q.value || 0));
-        return Math.max(p?.score ?? 0, maxValue);
-    }
 }

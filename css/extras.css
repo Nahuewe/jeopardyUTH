@@ -46,7 +46,30 @@ body.view-announcer .modal { cursor: default; }
 }
 
 .mode-controls-panel { flex-wrap: wrap; }
-body.ui-hidden .mode-controls-panel > :not(#toggleUiBtn):not(#musicBtn):not(#volumeContainer) { display: none !important; }
+body.ui-hidden .mode-controls-panel > :not(#toggleUiBtn):not(#musicBtn):not(#volumeContainer):not(#musicTrack):not(.sfx-wrap) { display: none !important; }
+
+/* Panel de efectos de sonido (admin) */
+.sfx-wrap { position: relative; }
+.music-track { max-width: 230px; cursor: pointer; }
+.music-track option { background: #12152a; color: #f2f3ff; }
+.sfx-board {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 60;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+    gap: 8px;
+    padding: 12px;
+    border-radius: 14px;
+    background: #12152a;
+    border: 1px solid rgba(255, 200, 0, 0.35);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+}
+.sfx-board[hidden] { display: none; }
+.sfx-board .mode-btn { white-space: nowrap; text-align: left; }
+.sfx-board .sfx-stop { grid-column: 1 / -1; text-align: center; }
+@media (max-width: 480px) { .sfx-board { grid-template-columns: 1fr; } }
 body.ui-hidden .mode-controls-panel { margin-bottom: 0; }
 body.ui-hidden .header { display: none; }
 
@@ -164,30 +187,6 @@ body.ui-hidden .header { display: none; }
 .dd-banner.show { display: block; }
 @keyframes ddShine { to { background-position: -200% 0; } }
 
-.bet-panel { display: none; }
-.bet-panel.show {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 14px;
-    align-items: flex-end;
-    justify-content: center;
-    padding: 18px;
-    border-radius: 14px;
-    background: var(--bg-primary);
-    border: 2px dashed var(--gold, #e1b12c);
-}
-.bet-panel label { display: flex; flex-direction: column; gap: 4px; font-weight: 700; }
-.bet-panel select, .bet-panel input {
-    padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid var(--bg-lighter);
-    background: var(--bg-secondary);
-    color: var(--text-color);
-    font-size: 1rem;
-}
-.bet-wait { font-size: 1.4rem; font-weight: 800; color: var(--gold, #e1b12c); text-align: center; }
-.modal.phase-bet .question,
-.modal.phase-bet .buttons-top .btn-pistas { visibility: hidden; }
 
 /* ---------- Respuesta, responsable, bloqueos ---------- */
 

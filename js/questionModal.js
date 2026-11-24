@@ -90,10 +90,6 @@ export class QuestionModal {
                 }, true);
             }
         }
-
-        this.el.addEventListener('change', (e) => {
-            if (this.admin && e.target.id === 'betParticipant') this.live.patchQ({ responderId: e.target.value });
-        });
     }
 
     #remoteMedia({ slot, action, time }) {
@@ -128,14 +124,11 @@ export class QuestionModal {
         if (this.key !== q.key) this.#startQuestion(q);
         if (q.answerShown || q.result) Voice.stop();
 
-        const bet = q.phase === 'bet';
         $('categoryTitle').textContent = round.categories[q.col] ?? '';
-        $('pointValue').textContent = bet ? '🎲' : `$${q.points}`;
+        $('pointValue').textContent = `$${q.points}`;
         $('ddBanner').classList.toggle('show', !!q.dd);
-        this.el.classList.toggle('phase-bet', bet);
 
-        this.#renderBet(q, round);
-        if (!bet && this.typedKey !== q.key) this.#typeQuestion(q, data);
+        if (this.typedKey !== q.key) this.#typeQuestion(q, data);
         this.#syncMedia(q);
         this.#syncOptions(q, data);
         this.#syncAnswer(q, data);
@@ -256,9 +249,7 @@ export class QuestionModal {
         let html = '';
 
         if (q.result?.type === 'correct') html = `<span class="rb-ok">✅ ¡Correcto, ${esc(name(q.result.pid))}!</span>`;
-        else if (q.result?.type === 'wrong') html = `<span class="rb-bad">❌ ${esc(name(q.result.pid))} falló la Daily Double</span>`;
         else if (q.result?.type === 'none') html = '<span class="rb-bad">Nadie acertó esta pregunta</span>';
-        else if (q.phase === 'bet') html = `<span class="rb-info">🎲 ¡DAILY DOUBLE! ${q.responderId ? esc(name(q.responderId)) + ' está apostando…' : ''}</span>`;
         else if (q.buzzedId) html = `<span class="rb-info">🔔 ${esc(name(q.buzzedId))} respondió primero</span>`;
         else if (q.lastFoul) html = `<span class="rb-bad">⚠️ ${esc(name(q.lastFoul.pid))} se adelantó</span>`;
         else if (q.buzzOpen && this.live.data.buzzerOn && this.live.data.connected.length) html = '<span class="rb-info">🔔 ¡Buzzers abiertos!</span>';
@@ -269,56 +260,11 @@ export class QuestionModal {
         banner.classList.toggle('show', !!html);
     }
 
-    /* ---------- Apuesta (Daily Double) ---------- */
-
-    #renderBet(q, round) {
-        const panel = $('betPanel');
-        const show = q.phase === 'bet';
-        panel.classList.toggle('show', show);
-        if (!show) { panel.innerHTML = ''; panel.dataset.sig = ''; return; }
-
-        const list = this.state.participants(round);
-        const sig = `${this.role}|${q.responderId}|${list.map(p => `${p.id}:${p.score}`).join(',')}`;
-        if (panel.dataset.sig === sig) return;
-        panel.dataset.sig = sig;
-
-        const who = this.state.participantById(q.responderId);
-        if (!this.admin) {
-            panel.innerHTML = `<p class="bet-wait">🎲 Daily Double — ${who ? esc(who.name) : 'alguien'} está haciendo su apuesta…</p>`;
-            return;
-        }
-        const max = who ? this.scoring.maxBet(who.id, q.roundId) : 0;
-        panel.innerHTML = `
-            <label>¿Quién juega?
-                <select id="betParticipant">
-                    ${list.map(p => `<option value="${esc(p.id)}" ${p.id === q.responderId ? 'selected' : ''}>${esc(p.name)} (${Utils.formatScore(p.score)})</option>`).join('')}
-                </select>
-            </label>
-            <label>Apuesta (5 – $${max}):
-                <input id="betAmount" type="number" min="5" max="${max}" step="5" value="${Math.min(max, 500)}">
-            </label>
-            <button class="btn btn-save" data-action="q-bet-confirm">Confirmar apuesta</button>`;
-    }
-
-    confirmBet() {
-        const q = this.live.data.q;
-        if (!q || q.phase !== 'bet') return;
-        const pid = $('betParticipant')?.value || q.responderId;
-        if (!pid) return Effects.toast('No hay participantes', 'error');
-        const max = this.scoring.maxBet(pid, q.roundId);
-        const bet = parseInt($('betAmount')?.value, 10);
-        if (!Number.isFinite(bet) || bet < 5 || bet > max) {
-            return Effects.toast(`La apuesta debe estar entre $5 y $${max}`, 'error');
-        }
-        this.live.patchQ({ phase: 'open', points: bet, bet, responderId: pid });
-    }
-
     /* ---------- Participantes ---------- */
 
     #renderPlayers(q, round) {
         const area = $('playersArea');
         let list = this.state.participants(round);
-        if (q.dd && q.phase === 'open') list = list.filter(p => p.id === q.responderId);
 
         const sig = JSON.stringify([this.role, q.points, q.dd, q.phase, q.lockedOut, q.buzzedId, q.responderId, !!q.result,
             this.state.settings.deductOnWrong, list.map(p => [p.id, p.name, p.score, p.color, p.avatar?.length])]);
@@ -330,8 +276,6 @@ export class QuestionModal {
             area.innerHTML = `<div class="players-area-empty"><span>⚠️</span><p>¡No hay ${what} para asignar puntos!</p></div>`;
             return;
         }
-        if (q.phase === 'bet') { area.innerHTML = ''; return; }
-
         const teamMode = this.state.isTeamRound(round);
         const all = this.state.participants(round);
         const sorted = [...list].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
@@ -359,7 +303,7 @@ export class QuestionModal {
                 <button class="player-add" style="background:${esc(p.color)};" data-action="q-correct" data-id="${esc(p.id)}" ${locked || done ? 'disabled' : ''}>✅ +$${q.points}</button>
                 <button class="player-deduct" data-action="q-wrong" data-id="${esc(p.id)}" ${locked || done ? 'disabled' : ''}>❌ ${deduct ? `-$${q.points}` : 'Falló'}</button>
             </div>` : '';
-        const key = this.admin && index >= 0 && index < 9 && !q.dd ? `<kbd class="buzz-key" title="Tecla para buzzer">${index + 1}</kbd>` : '';
+        const key = this.admin && index >= 0 && index < 9 ?`<kbd class="buzz-key" title="Tecla para buzzer">${index + 1}</kbd>` : '';
 
         return `
             <div class="player-info ${buzzed ? 'is-responder' : ''} ${locked ? 'locked-out' : ''}" style="border-top-color:${esc(p.color)};--p-color:${esc(p.color)};">
@@ -376,7 +320,7 @@ export class QuestionModal {
         if (!this.admin) return;
         const hasOptions = (data.multipleChoice || '').trim() !== '';
         const hint = $('btnShowOptions');
-        hint.style.display = hasOptions && !q.dd ? 'inline-flex' : 'none';
+        hint.style.display = hasOptions ? 'inline-flex' : 'none';
         hint.disabled = q.optionsShown;
 
         const t = this.live.data.timer;
@@ -395,7 +339,7 @@ export class QuestionModal {
 
         $('btnShowAnswer').disabled = !!q.answerShown;
         const bz = $('btnBuzzOpen');
-        bz.style.display = this.live.data.buzzerOn && q.phase === 'open' && !q.dd ? '' : 'none';
+        bz.style.display = this.live.data.buzzerOn && q.phase === 'open' ? '' : 'none';
         bz.textContent = q.buzzOpen ? '🔕 Cerrar buzzers' : '🔔 Abrir buzzers';
     }
 
@@ -561,7 +505,6 @@ export class QuestionModal {
         this.#clearTimeouts();
         const list = this.state.participants(round);
         const dd = !!data.dailyDouble && this.state.settings.dailyDoubleEnabled;
-        const turn = list.find(p => p.id === this.state.session.turnId) ?? list[0];
 
         const prev = this.live.data.roulette;
         this.live.set({
@@ -570,13 +513,13 @@ export class QuestionModal {
             roulette: { ...prev, visible: false, spinning: false, selectedId: null },
             q: {
                 key: uid(), roundId: round.id, col, row,
-                dd, phase: dd ? 'bet' : 'open',
+                dd, phase: 'open',
                 timerSeconds: data.timer > 0 ? data.timer : this.state.settings.timerSeconds,
                 timerOff: !this.state.settings.timerEnabled,
-                points: data.value, bet: null,
+                points: dd ? data.value * 2 : data.value,   // Daily Double: el doble de puntos
                 optionsShown: false, answerShown: false,
                 mediaRevealed: [false, false],
-                responderId: dd ? (turn?.id ?? null) : null,
+                responderId: null,
                 buzzOpen: false, fouls: {}, lastFoul: null,
                 buzzedId: null, lockedOut: [], result: null, mood: 'reading'
             }
@@ -585,7 +528,7 @@ export class QuestionModal {
 
     toggleOptions() {
         const q = this.live.data.q;
-        if (!q || q.optionsShown || q.dd || q.phase !== 'open') return;
+        if (!q || q.optionsShown || q.phase !== 'open') return;
         this.live.patchQ({ optionsShown: true, points: Math.floor(q.points / 2) });
     }
 
@@ -650,7 +593,7 @@ export class QuestionModal {
     /** remote: viene de un celular, así que solo vale con los buzzers abiertos. */
     buzz(pid, { remote = false } = {}) {
         const q = this.live.data.q;
-        if (!q || q.phase !== 'open' || q.dd || q.buzzedId || q.result || q.lockedOut.includes(pid)) return;
+        if (!q || q.phase !== 'open' || q.buzzedId || q.result || q.lockedOut.includes(pid)) return;
         if (remote) {
             // Apretar antes de tiempo (o estando castigado) es una falta: el castigo se reinicia.
             if (!q.buzzOpen || (q.fouls?.[pid] ?? 0) > Date.now()) return this.#foul(pid);
@@ -673,7 +616,6 @@ export class QuestionModal {
     correct(pid) {
         const q = this.live.data.q;
         if (!q || q.phase !== 'open' || q.result || q.lockedOut.includes(pid)) return;
-        if (q.dd && pid !== q.responderId) return;
 
         this.scoring.award(pid, q.points, this.#ctx(q));
         this.pauseTimer();
@@ -684,16 +626,7 @@ export class QuestionModal {
     wrong(pid) {
         const q = this.live.data.q;
         if (!q || q.phase !== 'open' || q.result || q.lockedOut.includes(pid)) return;
-        if (q.dd && pid !== q.responderId) return;
         const ctx = this.#ctx(q);
-
-        if (q.dd) {
-            this.scoring.penalize(pid, q.points, { ...ctx, consume: true });
-            this.pauseTimer();
-            this.live.patchQ({ result: { type: 'wrong', pid }, mood: 'incorrect', answerShown: true });
-            this.#later(() => this.close(), 5000);
-            return;
-        }
 
         this.scoring.penalize(pid, q.points, ctx);
         const lockedOut = [...q.lockedOut, pid];
@@ -711,7 +644,7 @@ export class QuestionModal {
     /** Nadie acertó: se marca como usada y se muestra la respuesta. */
     unanswered() {
         const q = this.live.data.q;
-        if (!q || q.phase === 'bet') return;
+        if (!q) return;
         if (q.result) return this.close(); // ya resuelta: "Terminar" solo cierra
         this.scoring.markUnanswered(this.#ctx(q));
         this.pauseTimer();

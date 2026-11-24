@@ -72,8 +72,8 @@ export const MediaStore = {
         return this.html(media, slot);
     },
 
-    collectIds(rounds) {
-        const ids = [];
+    collectIds(rounds, extra = []) {
+        const ids = extra.filter(Boolean).map(m => m.mediaId);
         for (const r of rounds) for (const col of r.questions) for (const q of col) {
             if (q.media1) ids.push(q.media1.mediaId);
             if (q.media2) ids.push(q.media2.mediaId);

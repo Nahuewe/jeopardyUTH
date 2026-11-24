@@ -8,14 +8,15 @@
 import { EventBus } from './eventBus.js';
 
 export const defaultLive = () => ({
-    screen: 'board',            // 'board' | 'question' | 'lightning' | 'podium'
+    screen: 'board',            // 'board' | 'question' | 'lightning' | 'podium' | 'credits'
     q: null,
     timer: null,
     roulette: { visible: false, angle: 0, spinning: false, durationMs: 0, selectedId: null, nonce: 0 },
     lightning: null,
+    creditsNonce: 0,            // cambia para reiniciar la cascada de créditos
     buzzerOn: false,            // el host de buzzers remotos está activo
     connected: [],              // ids de jugadores con el celular conectado
-    music: { playing: false, volume: 0.35 }
+    music: { playing: false, volume: 0.35, track: 0 }
 });
 
 export class LiveState extends EventBus {

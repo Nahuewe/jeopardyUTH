@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="index.css">
     <link rel="stylesheet" href="css/extras.css">
     <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/editor.css">
+    <link rel="stylesheet" href="css/credits.css">
     <link rel="icon" href="./images/porton.jpg" />
     <link rel="manifest" href="./manifest.webmanifest">
     <title>Jeopardy - UTH</title>
@@ -28,19 +30,24 @@
             <button id="modeGameBtn" class="mode-btn active" data-action="mode-game">Modo Juego</button>
             <button id="modeEditBtn" class="mode-btn" data-action="mode-edit">Modo Edición</button>
             <button id="musicBtn" class="mode-btn" data-action="toggle-music">🎵 Reproducir Música</button>
+            <select id="musicTrack" class="mode-btn music-track" aria-label="Pista de música" title="Pista de música"></select>
             <div id="volumeContainer" style="display:none; align-items:center; gap:8px;">
                 <label for="musicVolume" style="color:var(--text-muted); font-size:0.82rem;">🔊</label>
                 <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.35"
                     style="width:90px; cursor:pointer; accent-color: var(--accent-blue);">
             </div>
+            <div class="sfx-wrap">
+                <button id="sfxBtn" class="mode-btn" data-action="toggle-sfxboard" aria-expanded="false" aria-controls="sfxBoard">🔊 Efectos</button>
+                <div id="sfxBoard" class="sfx-board" hidden role="group" aria-label="Efectos de sonido"></div>
+            </div>
             <button id="openRouletteGlobalBtn" class="mode-btn" data-action="toggle-roulette">🎰 Ruleta</button>
             <button id="undoBtn" class="mode-btn" data-action="undo" disabled title="Ctrl+Z">↩️ Deshacer</button>
             <button class="mode-btn" data-action="open-settings">⚙️ Ajustes</button>
             <button class="mode-btn" data-action="open-podium">🏆 Finalizar</button>
+            <button class="mode-btn" data-action="open-credits">🎬 Créditos</button>
             <button class="mode-btn" data-action="open-announcer">📺 Abrir anunciador</button>
             <button id="buzzerBtn" class="mode-btn" data-action="open-buzzer">📱 Buzzers</button>
             <span id="announcerStatus" class="announcer-status">📺 Sin anunciador</span>
-            <button class="mode-btn" data-action="show-help" title="Atajos de teclado" aria-label="Atajos de teclado">⌨️</button>
             <button id="toggleUiBtn" class="mode-btn" data-action="toggle-ui">Ocultar UI</button>
         </div>
 
@@ -75,11 +82,7 @@
                 <button class="action-btn" data-action="delete-round">🗑️ Eliminar Ronda</button>
                 <button class="action-btn" data-action="reset-scores">🔄 Reiniciar Puntos</button>
                 <button class="action-btn" data-action="reset-questions">❌ Reiniciar Preguntas</button>
-                <button class="action-btn" data-action="export-json">📦 Exportar JSON</button>
-                <button class="action-btn" data-action="import-json">📥 Importar JSON</button>
-                <button class="action-btn" data-action="export-csv">📄 Exportar CSV</button>
-                <button class="action-btn" data-action="import-csv">📥 Importar CSV</button>
-                <button class="action-btn" data-action="csv-template">🧾 Plantilla CSV</button>
+                <button class="action-btn" data-action="edit-credits">🎬 Editar Créditos</button>
             </div>
         </div>
 
@@ -120,8 +123,7 @@
                     <button class="btn btn-timer btn-timer-off" data-action="q-timer-off">✕ Quitar</button>
                 </div>
 
-                <div class="dd-banner" id="ddBanner">🎲 DAILY DOUBLE 🎲</div>
-                <div class="bet-panel" id="betPanel"></div>
+                <div class="dd-banner" id="ddBanner">🎲 DAILY DOUBLE · ¡PUNTOS x2! 🎲</div>
 
                 <div class="question" id="questionText"></div>
 
@@ -159,29 +161,44 @@
     <!-- ═══════════════════════════════════
          EDITOR (solo admin)
     ═══════════════════════════════════ -->
-    <div class="editor-modal admin-only" id="editorModal" role="dialog" aria-modal="true" aria-label="Editor de ronda">
+    <div class="editor-modal admin-only" id="editorModal" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
         <div class="editor-content">
-            <h2 id="editorTitle">Editor de Juego</h2>
-            <div class="editor-round-meta">
-                <label>Nombre de la ronda
-                    <input type="text" id="roundName" data-field="roundName" maxlength="60">
-                </label>
-                <label>Modo
-                    <select id="roundMode" data-field="roundMode">
-                        <option value="individual">Individual (jugadores)</option>
-                        <option value="team">Grupal (equipos)</option>
-                    </select>
-                </label>
+            <header class="ed-head">
+                <div class="ed-head-text">
+                    <span class="ed-eyebrow">Editor de ronda</span>
+                    <h2 id="editorTitle">Editor de Juego</h2>
+                </div>
+                <button type="button" class="ed-close" data-action="ed-cancel" aria-label="Cerrar editor" title="Cerrar (Esc)">✕</button>
+            </header>
+
+            <div class="ed-body" id="editorBody">
+                <section class="ed-meta">
+                    <label class="ed-field">
+                        <span class="ed-label">Nombre de la ronda</span>
+                        <input type="text" id="roundName" data-field="roundName" maxlength="60">
+                    </label>
+                    <label class="ed-field">
+                        <span class="ed-label">Modo</span>
+                        <select id="roundMode" data-field="roundMode">
+                            <option value="individual">Individual (jugadores)</option>
+                            <option value="team">Grupal (equipos)</option>
+                        </select>
+                    </label>
+                    <div class="ed-toolbar">
+                        <button type="button" class="ed-btn ed-btn-primary" data-action="ed-add-category">＋ Categoría</button>
+                        <button type="button" class="ed-btn" data-action="ed-random-dd">🎲 Daily Double al azar</button>
+                    </div>
+                </section>
+                <div id="categoriesEditor"></div>
             </div>
-            <div class="editor-toolbar">
-                <button class="add-category-btn" data-action="ed-add-category">+ Agregar Categoría</button>
-                <button class="mini-btn" data-action="ed-random-dd">🎲 Daily Double al azar</button>
-            </div>
-            <div id="categoriesEditor"></div>
-            <div class="editor-actions">
-                <button class="btn btn-save" data-action="ed-save">Guardar Cambios</button>
-                <button class="btn danger btn-cancel" data-action="ed-cancel">Cancelar</button>
-            </div>
+
+            <footer class="ed-foot">
+                <span class="ed-summary" id="editorSummary" aria-live="polite"></span>
+                <div class="ed-foot-actions">
+                    <button type="button" class="ed-btn" data-action="ed-cancel">Cancelar</button>
+                    <button type="button" class="ed-btn ed-btn-save" data-action="ed-save">💾 Guardar cambios</button>
+                </div>
+            </footer>
         </div>
     </div>
 
@@ -190,6 +207,9 @@
 
     <!-- 🏆 PODIO -->
     <div class="modal" id="podiumModal"></div>
+
+    <!-- 🎬 CRÉDITOS -->
+    <div class="modal" id="creditsModal" aria-label="Créditos"></div>
 
     <!-- AUDIO -->
     <audio id="rouletteTick" src="./audio/ruleta.mp3" preload="auto"></audio>
