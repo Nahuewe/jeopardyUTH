@@ -31,14 +31,16 @@
             <button id="modeGameBtn" class="mode-btn active" data-action="mode-game">Modo Juego</button>
             <button id="modeEditBtn" class="mode-btn" data-action="mode-edit">Modo Edición</button>
             <button id="musicBtn" class="mode-btn" data-action="toggle-music">🎵 Reproducir Música</button>
-            <select id="musicTrack" class="mode-btn music-track" aria-label="Pista de música" title="Pista de música"></select>
+            <select id="musicTrack" class="mode-btn music-track" aria-label="Pista de música"
+                title="Pista de música"></select>
             <div id="volumeContainer" style="display:none; align-items:center; gap:8px;">
                 <label for="musicVolume" style="color:var(--text-muted); font-size:0.82rem;">🔊</label>
                 <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.35"
                     style="width:90px; cursor:pointer; accent-color: var(--accent-blue);">
             </div>
             <div class="sfx-wrap">
-                <button id="sfxBtn" class="mode-btn" data-action="toggle-sfxboard" aria-expanded="false" aria-controls="sfxBoard">🔊 Efectos</button>
+                <button id="sfxBtn" class="mode-btn" data-action="toggle-sfxboard" aria-expanded="false"
+                    aria-controls="sfxBoard">🔊 Efectos</button>
                 <div id="sfxBoard" class="sfx-board" hidden role="group" aria-label="Efectos de sonido"></div>
             </div>
             <button id="openRouletteGlobalBtn" class="mode-btn" data-action="toggle-roulette">🎰 Ruleta</button>
@@ -69,7 +71,8 @@
                 <h1>Concursillo - UTH Edition</h1>
                 <img src="./images/señalando.png" style="height:10em;" alt="">
             </div>
-            <p class="header-credits">Desarrollado por <span class="credits-name">Nahuel Soria Parodi</span> <span class="credits-joke">(y <span class="credits-claude">Claude</span>)</span></p>
+            <p class="header-credits">Desarrollado por <span class="credits-name">Nahuel Soria Parodi</span> <span
+                    class="credits-joke">(y <span class="credits-claude">Claude</span>)</span></p>
         </div>
 
         <!-- ACCIONES (modo edición, solo admin) -->
@@ -84,6 +87,8 @@
                 <button class="action-btn" data-action="reset-scores">🔄 Reiniciar Puntos</button>
                 <button class="action-btn" data-action="reset-questions">❌ Reiniciar Preguntas</button>
                 <button class="action-btn" data-action="edit-credits">🎬 Editar Créditos</button>
+                <button class="action-btn" data-action="export-json">📦 Exportar JSON</button>
+                <button class="action-btn" data-action="import-json">📥 Importar JSON</button>
             </div>
         </div>
 
@@ -114,12 +119,15 @@
 
                 <div class="timer-box" id="timerBox" aria-live="off">
                     <span id="timerText"></span>
-                    <div class="timer-track"><div id="timerBar" class="timer-fill"></div></div>
+                    <div class="timer-track">
+                        <div id="timerBar" class="timer-fill"></div>
+                    </div>
                 </div>
 
                 <div class="timer-config-row admin-only">
                     <span class="timer-config-label">Timer:</span>
-                    <input type="number" id="timerConfigInput" class="timer-config-input" min="0" max="600" step="5" placeholder="seg" value="0">
+                    <input type="number" id="timerConfigInput" class="timer-config-input" min="0" max="600" step="5"
+                        placeholder="seg" value="0">
                     <button class="btn btn-timer btn-timer-set" data-action="q-timer-set">Activar</button>
                     <button class="btn btn-timer btn-timer-off" data-action="q-timer-off">✕ Quitar</button>
                 </div>
@@ -143,9 +151,12 @@
                     <button id="btnShowOptions" class="btn btn-pistas" data-action="q-options">Ver Pistas (50%)</button>
                     <button id="btnShowAnswer" class="btn" data-action="q-answer">Mostrar Respuesta</button>
                     <button id="btnTimerToggle" class="btn" data-action="q-timer-toggle">⏱ Iniciar timer</button>
-                    <button id="btnTimerReset" class="btn" data-action="q-timer-reset" title="Reiniciar timer">↺</button>
-                    <button id="btnBuzzOpen" class="btn" data-action="q-buzz-open" style="display:none" title="Atajo: B">🔔 Abrir buzzers</button>
-                    <button class="btn btn-finish-question" data-action="q-none" title="Marca la pregunta como usada sin dar puntos (atajo: N)">Terminar Pregunta</button>
+                    <button id="btnTimerReset" class="btn" data-action="q-timer-reset"
+                        title="Reiniciar timer">↺</button>
+                    <button id="btnBuzzOpen" class="btn" data-action="q-buzz-open" style="display:none"
+                        title="Atajo: B">🔔 Abrir buzzers</button>
+                    <button class="btn btn-finish-question" data-action="q-none"
+                        title="Marca la pregunta como usada sin dar puntos (atajo: N)">Terminar Pregunta</button>
                     <button class="btn danger" data-action="q-close" title="Atajo: Esc">Cerrar</button>
                 </div>
 
@@ -169,7 +180,8 @@
                     <span class="ed-eyebrow">Editor de ronda</span>
                     <h2 id="editorTitle">Editor de Juego</h2>
                 </div>
-                <button type="button" class="ed-close" data-action="ed-cancel" aria-label="Cerrar editor" title="Cerrar (Esc)">✕</button>
+                <button type="button" class="ed-close" data-action="ed-cancel" aria-label="Cerrar editor"
+                    title="Cerrar (Esc)">✕</button>
             </header>
 
             <div class="ed-body" id="editorBody">
@@ -186,7 +198,8 @@
                         </select>
                     </label>
                     <div class="ed-toolbar">
-                        <button type="button" class="ed-btn ed-btn-primary" data-action="ed-add-category">＋ Categoría</button>
+                        <button type="button" class="ed-btn ed-btn-primary" data-action="ed-add-category">＋
+                            Categoría</button>
                         <button type="button" class="ed-btn" data-action="ed-random-dd">🎲 Daily Double al azar</button>
                     </div>
                 </section>
