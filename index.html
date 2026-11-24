@@ -1,260 +1,36 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#202225">
-    <link rel="stylesheet" href="index.css">
-    <link rel="stylesheet" href="css/extras.css">
-    <link rel="stylesheet" href="css/theme.css">
-    <link rel="stylesheet" href="css/editor.css">
-    <link rel="stylesheet" href="css/credits.css">
-    <link rel="stylesheet" href="css/mobile.css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#202225" />
     <link rel="icon" href="./images/porton.jpg" />
-    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="apple-touch-icon" href="./images/porton.jpg" />
+    <link rel="manifest" href="./manifest.webmanifest" />
     <title>Concursillo - UTH Edition</title>
-    <meta name="description" content="Concursillo UTH Edition: juego de preguntas y respuestas estilo Jeopardy con buzzers desde el celular, ruleta, Daily Double, música y presentadora.">
-    <meta name="author" content="Nahuel Soria Parodi">
-    <meta name="application-name" content="Concursillo UTH">
-    <link rel="canonical" href="https://nahuewe.github.io/jeopardyUTH/">
-    <link rel="apple-touch-icon" href="./images/porton.jpg">
+    <meta name="description" content="Concursillo UTH Edition: juego de preguntas y respuestas estilo Jeopardy con buzzers desde el celular, ruleta, Daily Double, música y presentadora." />
+    <meta name="author" content="Nahuel Soria Parodi" />
+    <link rel="canonical" href="https://nahuewe.github.io/jeopardyUTH/" />
 
-    <!-- Vista previa al compartir el link (WhatsApp, Discord, Facebook, etc.) -->
-    <meta property="og:type" content="website">
-    <meta property="og:site_name" content="Concursillo UTH">
-    <meta property="og:locale" content="es_AR">
-    <meta property="og:title" content="Concursillo - UTH Edition">
-    <meta property="og:description" content="El juego de preguntas y respuestas estilo Jeopardy: buzzers desde el celular, ruleta, Daily Double y más.">
-    <meta property="og:url" content="https://nahuewe.github.io/jeopardyUTH/">
-    <meta property="og:image" content="https://nahuewe.github.io/jeopardyUTH/images/og-image.jpg">
-    <meta property="og:image:type" content="image/jpeg">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="Concursillo UTH Edition con la presentadora sosteniendo un micrófono">
-
-    <!-- Twitter / X -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Concursillo - UTH Edition">
-    <meta name="twitter:description" content="El juego de preguntas y respuestas estilo Jeopardy: buzzers desde el celular, ruleta, Daily Double y más.">
-    <meta name="twitter:image" content="https://nahuewe.github.io/jeopardyUTH/images/og-image.jpg">
-</head>
-
-<body>
-
-    <div class="container">
-
-        <div id="introScreen">
-            <div class="curtain curtain-left"></div>
-            <div class="curtain curtain-right"></div>
-            <h1 class="intro-title">¡Bienvenidos a Jeopardy UTH!</h1>
-        </div>
-
-        <!-- BARRA DE CONTROL (solo admin) -->
-        <div class="mode-controls-panel admin-only" role="toolbar" aria-label="Controles del juego">
-            <button id="modeGameBtn" class="mode-btn active" data-action="mode-game">Modo Juego</button>
-            <button id="modeEditBtn" class="mode-btn" data-action="mode-edit">Modo Edición</button>
-            <button id="musicBtn" class="mode-btn" data-action="toggle-music">🎵 Reproducir Música</button>
-            <select id="musicTrack" class="mode-btn music-track" aria-label="Pista de música"
-                title="Pista de música"></select>
-            <div id="volumeContainer" style="display:none; align-items:center; gap:8px;">
-                <label for="musicVolume" style="color:var(--text-muted); font-size:0.82rem;">🔊</label>
-                <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.35"
-                    style="width:90px; cursor:pointer; accent-color: var(--accent-blue);">
-            </div>
-            <div class="sfx-wrap">
-                <button id="sfxBtn" class="mode-btn" data-action="toggle-sfxboard" aria-expanded="false"
-                    aria-controls="sfxBoard">🔊 Efectos</button>
-                <div id="sfxBoard" class="sfx-board" hidden role="group" aria-label="Efectos de sonido"></div>
-            </div>
-            <button id="openRouletteGlobalBtn" class="mode-btn" data-action="toggle-roulette">🎰 Ruleta</button>
-            <button id="undoBtn" class="mode-btn" data-action="undo" disabled title="Ctrl+Z">↩️ Deshacer</button>
-            <button class="mode-btn" data-action="open-settings">⚙️ Ajustes</button>
-            <button class="mode-btn" data-action="open-podium">🏆 Finalizar</button>
-            <button class="mode-btn" data-action="open-credits">🎬 Créditos</button>
-            <button class="mode-btn" data-action="open-announcer">📺 Abrir anunciador</button>
-            <button id="buzzerBtn" class="mode-btn" data-action="open-buzzer">📱 Buzzers</button>
-            <span id="announcerStatus" class="announcer-status">📺 Sin anunciador</span>
-            <button id="toggleUiBtn" class="mode-btn" data-action="toggle-ui">Ocultar UI</button>
-        </div>
-
-        <!-- RULETA GLOBAL (admin y anunciador) -->
-        <div id="rouletteGlobalWrapper" class="roulette-wrapper hidden">
-            <div class="roulette-container">
-                <div class="roulette-pointer"></div>
-                <div class="roulette-wheel" id="rouletteWheel"></div>
-                <button class="roulette-btn admin-only" id="spinRouletteBtn" data-action="roulette-spin">Girar</button>
-            </div>
-            <div id="rouletteWinner" class="roulette-winner" aria-live="polite"></div>
-        </div>
-
-        <!-- HEADER -->
-        <div class="header">
-            <div style="display:flex; align-items:center; justify-content:center; gap:20px;">
-                <img src="./images/señalando.png" style="height:10em; transform:scaleX(-1);" alt="">
-                <h1>Concursillo - UTH Edition</h1>
-                <img src="./images/señalando.png" style="height:10em;" alt="">
-            </div>
-            <p class="header-credits">Desarrollado por <span class="credits-name">Nahuel Soria Parodi</span> <span
-                    class="credits-joke">(y <span class="credits-claude">Claude</span>)</span></p>
-        </div>
-
-        <!-- ACCIONES (modo edición, solo admin) -->
-        <div class="controls-panel admin-only">
-            <div class="actions-list" id="actionsDropdown">
-                <button class="action-btn" data-action="add-player">➕ Agregar Jugador</button>
-                <button class="action-btn" data-action="create-team">👥 Crear Equipo</button>
-                <button class="action-btn" data-action="edit-questions">✏️ Editar Preguntas</button>
-                <button class="action-btn" data-action="new-round">🆕 Nueva Ronda</button>
-                <button class="action-btn" data-action="duplicate-round">📄 Duplicar Ronda</button>
-                <button class="action-btn" data-action="delete-round">🗑️ Eliminar Ronda</button>
-                <button class="action-btn" data-action="reset-scores">🔄 Reiniciar Puntos</button>
-                <button class="action-btn" data-action="reset-questions">❌ Reiniciar Preguntas</button>
-                <button class="action-btn" data-action="edit-credits">🎬 Editar Créditos</button>
-                <button class="action-btn" data-action="export-json">📦 Exportar JSON</button>
-                <button class="action-btn" data-action="import-json">📥 Importar JSON</button>
-            </div>
-        </div>
-
-        <!-- MODO JUEGO -->
-        <div id="gameModeContainer" class="mode-content">
-            <div class="scoreboard" id="scoreboard"></div>
-            <div class="board" id="board"></div>
-        </div>
-
-        <!-- MODO EDICIÓN (solo admin) -->
-        <div id="editModeContainer" class="mode-content admin-only" style="display:none;">
-            <h2 style="text-align:center; margin-bottom: 20px;">Opciones de Ronda</h2>
-            <p class="edit-info">Seleccioná la ronda para ver/editar su tablero de preguntas.</p>
-            <div class="tabs-container" id="tabsContainer"></div>
-        </div>
-
-    </div>
-
-    <!-- ═══════════════════════════════════
-         MODAL DE PREGUNTA (admin y anunciador)
-    ═══════════════════════════════════ -->
-    <div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Pregunta">
-        <div class="modal-content">
-            <div class="modal-main">
-
-                <h2 id="categoryTitle"></h2>
-                <div class="value" id="pointValue"></div>
-
-                <div class="timer-box" id="timerBox" aria-live="off">
-                    <span id="timerText"></span>
-                    <div class="timer-track">
-                        <div id="timerBar" class="timer-fill"></div>
-                    </div>
-                </div>
-
-                <div class="timer-config-row admin-only">
-                    <span class="timer-config-label">Timer:</span>
-                    <input type="number" id="timerConfigInput" class="timer-config-input" min="0" max="600" step="5"
-                        placeholder="seg" value="0">
-                    <button class="btn btn-timer btn-timer-set" data-action="q-timer-set">Activar</button>
-                    <button class="btn btn-timer btn-timer-off" data-action="q-timer-off">✕ Quitar</button>
-                </div>
-
-                <div class="dd-banner" id="ddBanner">🎲 DAILY DOUBLE · ¡PUNTOS x2! 🎲</div>
-
-                <div class="question" id="questionText"></div>
-
-                <div class="responder-banner" id="responderBanner" aria-live="polite"></div>
-
-                <div class="multiple-choice-container" id="multipleChoiceContainer">
-                    <h3 style="text-align:center; margin-bottom:10px;">Opciones</h3>
-                    <div class="multiple-choice-grid" id="multipleChoiceText"></div>
-                </div>
-
-                <div class="answer" id="answerText"></div>
-                <div class="admin-answer admin-only" id="adminAnswer"></div>
-
-                <!-- Botones (solo admin) -->
-                <div class="buttons-top admin-only">
-                    <button id="btnShowOptions" class="btn btn-pistas" data-action="q-options">Ver Pistas (50%)</button>
-                    <button id="btnShowAnswer" class="btn" data-action="q-answer">Mostrar Respuesta</button>
-                    <button id="btnTimerToggle" class="btn" data-action="q-timer-toggle">⏱ Iniciar timer</button>
-                    <button id="btnTimerReset" class="btn" data-action="q-timer-reset"
-                        title="Reiniciar timer">↺</button>
-                    <button id="btnBuzzOpen" class="btn" data-action="q-buzz-open" style="display:none"
-                        title="Atajo: B">🔔 Abrir buzzers</button>
-                    <button class="btn btn-finish-question" data-action="q-none"
-                        title="Marca la pregunta como usada sin dar puntos (atajo: N)">Terminar Pregunta</button>
-                    <button class="btn danger" data-action="q-close" title="Atajo: Esc">Cerrar</button>
-                </div>
-
-                <div class="players-area" id="playersArea"></div>
-
-            </div>
-
-            <div class="presenter-container">
-                <img src="./images/leyendo.png" class="presenter-img" data-pose="leyendo" alt="Presentadora">
-            </div>
-        </div>
-    </div>
-
-    <!-- ═══════════════════════════════════
-         EDITOR (solo admin)
-    ═══════════════════════════════════ -->
-    <div class="editor-modal admin-only" id="editorModal" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
-        <div class="editor-content">
-            <header class="ed-head">
-                <div class="ed-head-text">
-                    <span class="ed-eyebrow">Editor de ronda</span>
-                    <h2 id="editorTitle">Editor de Juego</h2>
-                </div>
-                <button type="button" class="ed-close" data-action="ed-cancel" aria-label="Cerrar editor"
-                    title="Cerrar (Esc)">✕</button>
-            </header>
-
-            <div class="ed-body" id="editorBody">
-                <section class="ed-meta">
-                    <label class="ed-field">
-                        <span class="ed-label">Nombre de la ronda</span>
-                        <input type="text" id="roundName" data-field="roundName" maxlength="60">
-                    </label>
-                    <label class="ed-field">
-                        <span class="ed-label">Modo</span>
-                        <select id="roundMode" data-field="roundMode">
-                            <option value="individual">Individual (jugadores)</option>
-                            <option value="team">Grupal (equipos)</option>
-                        </select>
-                    </label>
-                    <div class="ed-toolbar">
-                        <button type="button" class="ed-btn ed-btn-primary" data-action="ed-add-category">＋
-                            Categoría</button>
-                        <button type="button" class="ed-btn" data-action="ed-random-dd">🎲 Daily Double al azar</button>
-                    </div>
-                </section>
-                <div id="categoriesEditor"></div>
-            </div>
-
-            <footer class="ed-foot">
-                <span class="ed-summary" id="editorSummary" aria-live="polite"></span>
-                <div class="ed-foot-actions">
-                    <button type="button" class="ed-btn" data-action="ed-cancel">Cancelar</button>
-                    <button type="button" class="ed-btn ed-btn-save" data-action="ed-save">💾 Guardar cambios</button>
-                </div>
-            </footer>
-        </div>
-    </div>
-
-    <!-- ⚡ RONDA RELÁMPAGO -->
-    <div class="modal" id="lightningModal"></div>
-
-    <!-- 🏆 PODIO -->
-    <div class="modal" id="podiumModal"></div>
-
-    <!-- 🎬 CRÉDITOS -->
-    <div class="modal" id="creditsModal" aria-label="Créditos"></div>
-
-    <!-- AUDIO -->
-    <audio id="rouletteTick" src="./audio/ruleta.mp3" preload="auto"></audio>
-    <audio id="gameMusic" src="./audio/Música preguntas 1 - 5 (Quien Quiere ser millonario).mp3" loop></audio>
-
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script type="module" src="js/main.js"></script>
-</body>
-
+    <!-- Vista previa al compartir el link -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Concursillo UTH" />
+    <meta property="og:locale" content="es_AR" />
+    <meta property="og:title" content="Concursillo - UTH Edition" />
+    <meta property="og:description" content="El juego de preguntas y respuestas estilo Jeopardy: buzzers desde el celular, ruleta, Daily Double y más." />
+    <meta property="og:url" content="https://nahuewe.github.io/jeopardyUTH/" />
+    <meta property="og:image" content="https://nahuewe.github.io/jeopardyUTH/images/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Concursillo UTH Edition con la presentadora sosteniendo un micrófono" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Concursillo - UTH Edition" />
+    <meta name="twitter:description" content="El juego de preguntas y respuestas estilo Jeopardy: buzzers desde el celular, ruleta, Daily Double y más." />
+    <meta name="twitter:image" content="https://nahuewe.github.io/jeopardyUTH/images/og-image.jpg" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
