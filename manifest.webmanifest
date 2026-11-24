@@ -1,6 +1,8 @@
 {
-    "name": "Jeopardy UTH",
-    "short_name": "Jeopardy",
+    "name": "Concursillo - UTH Edition",
+    "short_name": "Concursillo",
+    "description": "Juego de preguntas y respuestas estilo Jeopardy con buzzers desde el celular.",
+    "lang": "es",
     "start_url": "./index.html",
     "scope": "./",
     "display": "standalone",
