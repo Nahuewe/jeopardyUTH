@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MediaStore } from '../engine/media.ts';
-import { useEngine, useGame, useLive } from '../hooks/useEngine.tsx';
+import { useAnnouncerPresent, useEngine, useGame, useLive } from '../hooks/useEngine.ts';
 
 const SPEED = 55;       // px por segundo
 const MIN_SECONDS = 24;
+const OUTRO_DELAY_MS = 100;   // pausa tras terminar los créditos, antes del video
+const OUTRO_SRC = `${import.meta.env.BASE_URL}images/hasta-la-proxima.mp4`;
 
 /** Créditos finales en cascada, al estilo "Star Wars". */
 export function CreditsView() {
@@ -14,6 +16,9 @@ export function CreditsView() {
     const c = state.credits;
     const crawlRef = useRef<HTMLDivElement>(null);
     const stageRef = useRef<HTMLDivElement>(null);
+    const announcerPresent = useAnnouncerPresent();
+    const [outro, setOutro] = useState(false);
+    const outroTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
     // Mismo rol (sin importar mayúsculas ni espacios) = un solo bloque con todos los nombres.
     const entries = useMemo(() => {
@@ -37,6 +42,8 @@ export function CreditsView() {
         const crawl = crawlRef.current, stage = stageRef.current;
         if (!crawl || !stage) return;
         crawl.classList.remove('run');
+        clearTimeout(outroTimer.current);
+        setOutro(false);
         let cancelled = false;
         const run = () => {
             if (cancelled) return;
@@ -51,7 +58,7 @@ export function CreditsView() {
             .map(i => new Promise<void>(r => { i.onload = i.onerror = () => r(); }));
         let timer: ReturnType<typeof setTimeout>;
         void Promise.all(pending).then(() => { timer = setTimeout(run, 50); });
-        return () => { cancelled = true; clearTimeout(timer); };
+        return () => { cancelled = true; clearTimeout(timer); clearTimeout(outroTimer.current); };
     }, [sig, screen]);
 
     const active = screen === 'credits';
@@ -67,7 +74,8 @@ export function CreditsView() {
                     <div className="cr-stars" aria-hidden="true" />
                     <div className="cr-stage" ref={stageRef}>
                         <div className="cr-plane">
-                            <div className="cr-crawl" ref={crawlRef} aria-label="Créditos">
+                            <div className="cr-crawl" ref={crawlRef} aria-label="Créditos"
+                                onAnimationEnd={() => { outroTimer.current = setTimeout(() => setOutro(true), OUTRO_DELAY_MS); }}>
                                 <h2 className="cr-heading">Créditos</h2>
                                 <p className="cr-title">{c.title}</p>
                                 {entries.map((e, i) => (
@@ -83,6 +91,12 @@ export function CreditsView() {
                             </div>
                         </div>
                     </div>
+                    {outro && (
+                        <div className="cr-outro">
+                            {/* Si hay anunciador, el admin lo ve mudo para no duplicar el audio. */}
+                            <video src={OUTRO_SRC} autoPlay playsInline muted={admin && announcerPresent} />
+                        </div>
+                    )}
                     {admin && (
                         <div className="cr-controls admin-only">
                             <button type="button" className="btn" onClick={() => live.set({ creditsNonce: creditsNonce + 1 })}>↺ Repetir</button>

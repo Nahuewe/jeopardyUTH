@@ -4,7 +4,7 @@ import { Effects } from '../engine/effects.ts';
 import { openSettings } from '../engine/settingsDialog.ts';
 import { TRACKS } from '../engine/music.ts';
 import { SOUNDBOARD } from '../engine/synth.ts';
-import { useAnnouncerPresent, useEngine, useGame, useLive } from '../hooks/useEngine.tsx';
+import { useAnnouncerPresent, useEngine, useGame, useLive } from '../hooks/useEngine.ts';
 
 /** Panel de efectos de sonido para lanzar sobre la música. */
 function SfxBoard() {
@@ -39,14 +39,14 @@ function MusicControls() {
 
     return (
         <>
-            <button className="mode-btn" onClick={() => setMusic({ playing: !playing })}>
+            <button id="musicBtn" className="mode-btn" onClick={() => setMusic({ playing: !playing })}>
                 {playing ? '⏸️ Pausar Música' : '🎵 Reproducir Música'}
             </button>
-            <select className="mode-btn music-track" aria-label="Pista de música" title="Pista de música"
+            <select id="musicTrack" className="mode-btn music-track" aria-label="Pista de música" title="Pista de música"
                 value={track} onChange={e => setMusic({ track: Number(e.target.value) })}>
                 {TRACKS.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
             </select>
-            <div style={{ display: playing ? 'flex' : 'none', alignItems: 'center', gap: 8 }}>
+            <div id="volumeContainer" style={{ display: playing ? 'flex' : 'none', alignItems: 'center', gap: 8 }}>
                 <label htmlFor="musicVolume" style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>🔊</label>
                 <input type="range" id="musicVolume" min={0} max={1} step={0.01} value={volume}
                     onChange={e => setMusic({ volume: parseFloat(e.target.value) })}
@@ -95,7 +95,7 @@ export function Toolbar() {
             <span className={present ? 'announcer-status on' : 'announcer-status'}>
                 {present ? '📺 Anunciador conectado' : '📺 Sin anunciador'}
             </span>
-            <button className="mode-btn" onClick={toggleUI}>{state.uiHidden ? 'Mostrar UI' : 'Ocultar UI'}</button>
+            <button id="toggleUiBtn" className="mode-btn" onClick={toggleUI}>{state.uiHidden ? 'Mostrar UI' : 'Ocultar UI'}</button>
         </div>
     );
 }

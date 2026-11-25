@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { SUGGESTED_CATEGORIES } from '../engine/lightning.ts';
 import type { LightningState, Participant } from '../engine/types.ts';
 import { DEFAULT_AVATAR, formatScore } from '../engine/utils.ts';
-import { useEngine, useGame, useLive } from '../hooks/useEngine.tsx';
+import { useEngine, useGame, useLive } from '../hooks/useEngine.ts';
 
 const avatarOf = (p: Participant) => ('avatar' in p && p.avatar) || DEFAULT_AVATAR;
 

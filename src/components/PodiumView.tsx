@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Effects } from '../engine/effects.ts';
 import type { Participant } from '../engine/types.ts';
 import { DEFAULT_AVATAR, formatScore } from '../engine/utils.ts';
-import { useEngine, useGame, useLive } from '../hooks/useEngine.tsx';
+import { useEngine, useGame, useLive } from '../hooks/useEngine.ts';
 
 const MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
 

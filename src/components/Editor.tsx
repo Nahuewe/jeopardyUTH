@@ -4,8 +4,8 @@ import { Effects } from '../engine/effects.ts';
 import { makeQuestion } from '../engine/gameState.ts';
 import { MediaStore } from '../engine/media.ts';
 import type { MediaRef, Question, Round, RoundMode } from '../engine/types.ts';
-import { useGame } from '../hooks/useEngine.tsx';
-import { useUi } from '../hooks/useUi.tsx';
+import { useGame } from '../hooks/useEngine.ts';
+import { useUi } from '../hooks/useUi.ts';
 
 const TF_OPTIONS = 'Verdadero / Falso';
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;

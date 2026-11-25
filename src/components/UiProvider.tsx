@@ -1,17 +1,5 @@
-/* Qué paneles de edición están abiertos (estado de interfaz local, no se guarda). */
-
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
-
-interface Ui {
-    editorOpen: boolean;
-    creditsEditorOpen: boolean;
-    openEditor: () => void;
-    closeEditor: () => void;
-    openCreditsEditor: () => void;
-    closeCreditsEditor: () => void;
-}
-
-const UiContext = createContext<Ui | null>(null);
+import { useMemo, useState, type ReactNode } from 'react';
+import { UiContext, type Ui } from '../hooks/useUi.ts';
 
 export function UiProvider({ children }: { children: ReactNode }) {
     const [editorOpen, setEditor] = useState(false);
@@ -26,10 +14,4 @@ export function UiProvider({ children }: { children: ReactNode }) {
     }), [editorOpen, creditsEditorOpen]);
 
     return <UiContext.Provider value={value}>{children}</UiContext.Provider>;
-}
-
-export function useUi(): Ui {
-    const ui = useContext(UiContext);
-    if (!ui) throw new Error('useUi fuera de UiProvider');
-    return ui;
 }

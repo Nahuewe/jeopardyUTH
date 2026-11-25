@@ -14,8 +14,8 @@ import { Toolbar } from './components/Toolbar.tsx';
 import { Dialog } from './engine/dialog.ts';
 import { Effects } from './engine/effects.ts';
 import { esc } from './engine/utils.ts';
-import { useEngine, useGame, useLive } from './hooks/useEngine.tsx';
-import { useUi } from './hooks/useUi.tsx';
+import { useEngine, useGame, useLive } from './hooks/useEngine.ts';
+import { useUi } from './hooks/useUi.ts';
 
 const BASE = import.meta.env.BASE_URL;
 

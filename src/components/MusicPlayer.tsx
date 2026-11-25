@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { trackById } from '../engine/music.ts';
-import { useAnnouncerPresent, useEngine, useLive } from '../hooks/useEngine.tsx';
+import { useAnnouncerPresent, useEngine, useLive } from '../hooks/useEngine.ts';
 
 /** Reproduce la pista elegida. Si hay anunciador, suena allí y no en el admin. */
 export function MusicPlayer({ unlocked = true }: { unlocked?: boolean }) {

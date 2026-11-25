@@ -1,5 +1,5 @@
 import type { KeyboardEvent } from 'react';
-import { useEngine, useGame } from '../hooks/useEngine.tsx';
+import { useEngine, useGame } from '../hooks/useEngine.ts';
 
 interface BoardProps {
     /** Abre la pregunta de la celda (solo admin). */

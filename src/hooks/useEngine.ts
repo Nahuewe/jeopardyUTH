@@ -1,27 +1,11 @@
 /* Conecta el motor (clases con eventos) con React. */
 
-import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { bootEngine, createEngine, roleFromUrl, type Engine } from '../engine/app.ts';
+import { createContext, useContext, useSyncExternalStore } from 'react';
+import type { Engine } from '../engine/app.ts';
 import type { GameState } from '../engine/gameState.ts';
 import type { LiveState } from '../engine/liveState.ts';
 
-const EngineContext = createContext<Engine | null>(null);
-
-export function EngineProvider({ children }: { children: ReactNode }) {
-    const [engine] = useState(() => createEngine(roleFromUrl()));
-    const [ready, setReady] = useState(false);
-
-    useEffect(() => {
-        document.body.classList.add(`view-${engine.role}`);
-        let alive = true;
-        void bootEngine(engine).then(() => { if (alive) setReady(true); });
-        if (import.meta.env.DEV) (window as unknown as { game: Engine }).game = engine;
-        return () => { alive = false; };
-    }, [engine]);
-
-    if (!ready) return null;
-    return <EngineContext.Provider value={engine}>{children}</EngineContext.Provider>;
-}
+export const EngineContext = createContext<Engine | null>(null);
 
 export function useEngine(): Engine {
     const e = useContext(EngineContext);

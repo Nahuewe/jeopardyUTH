@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Participant, Team } from '../engine/types.ts';
 import { DEFAULT_AVATAR, formatScore } from '../engine/utils.ts';
-import { useEngine, useGame, useLive } from '../hooks/useEngine.tsx';
+import { useEngine, useGame, useLive } from '../hooks/useEngine.ts';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 

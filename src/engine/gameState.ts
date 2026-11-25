@@ -28,9 +28,10 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
 export const DEFAULT_CREDITS: Readonly<Credits> = Object.freeze({
     title: 'Concursillo · UTH Edition',
     entries: [
-        { role: 'Desarrollador', name: 'Nahuel Soria Parodi (y Claude)' },
+        { role: 'Desarrollador', name: 'Nahue' },
         { role: 'Artista', name: 'Zonoro' },
-        { role: 'Anunciador', name: 'Canon' }
+        { role: 'Anunciador', name: 'Canon' },
+        { role: 'IA', name: 'Claude' }
     ],
     images: [],
     thanks: '¡Gracias por jugar!'

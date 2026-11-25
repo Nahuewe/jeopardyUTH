@@ -1,8 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
-import { UiProvider } from './hooks/useUi.tsx';
-import { EngineProvider } from './hooks/useEngine.tsx';
+import { UiProvider } from './components/UiProvider.tsx';
+import { EngineProvider } from './components/EngineProvider.tsx';
 import './styles/index.css';
 import './styles/extras.css';
 import './styles/theme.css';

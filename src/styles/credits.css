@@ -187,3 +187,17 @@
     .cr-ed-row { grid-template-columns: 1fr auto; }
     .cr-ed-row input:first-child { grid-column: 1 / -1; }
 }
+
+/* Video final ("hasta la próxima"), después de los créditos */
+.cr-outro {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #02030a;
+    animation: crOutroIn 1.2s ease both;
+}
+.cr-outro video { max-width: 100%; max-height: 100%; }
+@keyframes crOutroIn { from { opacity: 0; } to { opacity: 1; } }

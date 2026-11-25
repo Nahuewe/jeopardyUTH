@@ -1,6 +1,6 @@
-import { useUi } from '../hooks/useUi.tsx';
+import { useUi } from '../hooks/useUi.ts';
 import { addRound, deleteRound, duplicateRound } from '../engine/rounds.ts';
-import { useEngine, useGame } from '../hooks/useEngine.tsx';
+import { useEngine, useGame } from '../hooks/useEngine.ts';
 
 /** Panel de acciones del Modo Edición. */
 export function ActionsPanel() {

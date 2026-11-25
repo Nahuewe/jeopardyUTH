@@ -4,8 +4,8 @@ import { Effects } from '../engine/effects.ts';
 import { normalizeCredits } from '../engine/gameState.ts';
 import { MediaStore } from '../engine/media.ts';
 import type { Credits, MediaRef } from '../engine/types.ts';
-import { useGame } from '../hooks/useEngine.tsx';
-import { useUi } from '../hooks/useUi.tsx';
+import { useGame } from '../hooks/useEngine.ts';
+import { useUi } from '../hooks/useUi.ts';
 
 /** Editor de créditos finales (nombres, imágenes y agradecimiento). */
 export function CreditsEditor() {

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useEngine, useGame, useLive } from '../hooks/useEngine.tsx';
+import { useEngine, useGame, useLive } from '../hooks/useEngine.ts';
 
 /** Ruleta global: se ve en admin y anunciador; solo el admin la gira. */
 export function RouletteView() {

@@ -4,7 +4,7 @@ import { Effects } from '../engine/effects.ts';
 import type { LiveQuestion, MediaRef, Participant, Question, Round, Team } from '../engine/types.ts';
 import { DEFAULT_AVATAR, formatScore } from '../engine/utils.ts';
 import { Voice } from '../engine/voice.ts';
-import { useAnnouncerPresent, useEngine, useGame, useLive } from '../hooks/useEngine.tsx';
+import { useAnnouncerPresent, useEngine, useGame, useLive } from '../hooks/useEngine.ts';
 import { useTypedOptions, useTypewriter } from '../hooks/useTypewriter.ts';
 import { Presenter } from './Presenter.tsx';
 
